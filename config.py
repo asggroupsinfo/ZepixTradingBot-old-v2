@@ -1,0 +1,75 @@
+import json
+import os
+from typing import Dict, Any
+
+class Config:
+    def __init__(self):
+        self.config_file = "config.json"
+        self.default_config = {
+            "telegram_token": "8289959450:AAHKZ_SJWjVzbRZXLAxaJ6SLfcWtXG1kBnA",
+            "telegram_chat_id": 2139792302,
+            "allowed_telegram_user": 2139792302,
+            "mt5_login": 308646228,
+            "mt5_password": "Fast@@2801@@!!!",
+            "mt5_server": "XMGlobal-MT5 6",
+            "risk_tiers": {
+                "5000": {"per_trade_cap": 150, "daily_loss_limit": 200, "max_total_loss": 500, "base_multiplier": 1.0},
+                "10000": {"per_trade_cap": 300, "daily_loss_limit": 400, "max_total_loss": 1000, "base_multiplier": 2.0},
+                "25000": {"per_trade_cap": 750, "daily_loss_limit": 1000, "max_total_loss": 2500, "base_multiplier": 5.0},
+                "50000": {"per_trade_cap": 1500, "daily_loss_limit": 2000, "max_total_loss": 5000, "base_multiplier": 10.0},
+                "100000": {"per_trade_cap": 3000, "daily_loss_limit": 4000, "max_total_loss": 10000, "base_multiplier": 20.0}
+            },
+            "volatility_risk_levels": {
+                "LOW": {"base_per_trade_cap": 30, "base_sl_points": 7},
+                "MEDIUM": {"base_per_trade_cap": 50, "base_sl_points": 10},
+                "HIGH": {"base_per_trade_cap": 80, "base_sl_points": 15}
+            },
+            "symbol_config": {
+                "EURUSD": {"volatility": "LOW", "pip_value": 10.0, "max_lots": 10.0},
+                "GBPUSD": {"volatility": "MEDIUM", "pip_value": 10.0, "max_lots": 8.0},
+                "USDJPY": {"volatility": "MEDIUM", "pip_value": 9.0, "max_lots": 10.0},
+                "AUDUSD": {"volatility": "MEDIUM", "pip_value": 10.0, "max_lots": 8.0},
+                "USDCAD": {"volatility": "MEDIUM", "pip_value": 8.0, "max_lots": 10.0},
+                "NZDUSD": {"volatility": "MEDIUM", "pip_value": 10.0, "max_lots": 8.0},
+                "EURJPY": {"volatility": "HIGH", "pip_value": 9.5, "max_lots": 5.0},
+                "GBPJPY": {"volatility": "HIGH", "pip_value": 9.0, "max_lots": 3.0},
+                "AUDJPY": {"volatility": "HIGH", "pip_value": 9.2, "max_lots": 5.0},
+                "XAUUSD": {"volatility": "HIGH", "pip_value": 1.0, "max_lots": 2.0}
+            },
+            "default_risk_tier": "5000",
+            "mt5_retries": 3,
+            "mt5_wait": 5,
+            "simulate_orders": False,
+            "debug": True,
+            "strategies": ["LOGIC1", "LOGIC2", "LOGIC3"],
+            "daily_reset_time": "03:35",
+            "fibonacci_levels": {"tp1": 0.618, "tp2": 1.0, "tp3": 1.618},
+            "exit_strategies": {
+                "default_trailing_points": 50.0,
+                "default_time_exit_hours": 4.0,
+                "check_interval_seconds": 5
+            }
+        }
+        self.load_config()
+
+    def load_config(self):
+        if os.path.exists(self.config_file):
+            with open(self.config_file, 'r') as f:
+                self.config = json.load(f)
+        else:
+            self.config = self.default_config
+            self.save_config()
+
+    def save_config(self):
+        with open(self.config_file, 'w') as f:
+            json.dump(self.config, f, indent=4)
+
+    def __getitem__(self, key):
+        return self.config.get(key)
+    
+    def get(self, key, default=None):
+        return self.config.get(key, default)
+    
+    def update(self, key, value):
+        self.config[key] = value
+        self.save_config()
