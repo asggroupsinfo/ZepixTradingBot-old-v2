@@ -1,0 +1,8 @@
+{
+  "mt5_login": 308646228,
+  "mt5_password": "Fast@@2801@@!!!",
+  "mt5_server": "XMGlobal-MT5 6",
+  "simulate_orders": false,
+  "webhook_port": 80,
+  "host": "0.0.0.0"
+}

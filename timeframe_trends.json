@@ -1,0 +1,22 @@
+{
+    "symbols": {
+        "XAUUSD": {
+            "1h": {
+                "trend": "BULLISH",
+                "mode": "AUTO",
+                "last_update": "2025-09-30T13:25:24.177616"
+            },
+            "15m": {
+                "trend": "BULLISH",
+                "mode": "AUTO",
+                "last_update": "2025-09-30T13:25:41.080509"
+            },
+            "1d": {
+                "trend": "NEUTRAL",
+                "mode": "AUTO",
+                "last_update": "2025-09-30T12:39:58.676318"
+            }
+        }
+    },
+    "default_mode": "AUTO"
+}

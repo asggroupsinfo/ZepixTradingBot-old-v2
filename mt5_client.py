@@ -8,9 +8,21 @@ class MT5Client:
     def __init__(self, config: Config):
         self.config = config
         self.initialized = False
+        # Load symbol mapping from config for broker compatibility
+        self.symbol_mapping = config.get("symbol_mapping", {})
+
+    def _map_symbol(self, symbol: str) -> str:
+        """
+        Map TradingView symbol to broker's MT5 symbol
+        Example: XAUUSD (TradingView) -> GOLD (XM Broker)
+        """
+        mapped = self.symbol_mapping.get(symbol, symbol)
+        if mapped != symbol:
+            print(f"🔄 Symbol mapping: {symbol} → {mapped}")
+        return mapped
 
     def initialize(self) -> bool:
-        """Initialize MT5 connection"""
+        """Initialize MT5 connection with retry logic"""
         for i in range(self.config["mt5_retries"]):
             try:
                 if not mt5.initialize():
@@ -27,6 +39,8 @@ class MT5Client:
                 if authorized:
                     self.initialized = True
                     print("✅ MT5 connection established")
+                    account_info = mt5.account_info()
+                    print(f"Account Balance: ${account_info.balance:.2f}")
                     return True
                 else:
                     print(f"MT5 login failed, retry {i+1}/{self.config['mt5_retries']}")
@@ -40,19 +54,51 @@ class MT5Client:
         return False
 
     def place_order(self, symbol: str, order_type: str, lot_size: float, 
-                   price: float, sl: float, comment: str = "") -> Optional[int]:
-        """Place a new order"""
+                   price: float, sl: float, tp: float = None, 
+                   comment: str = "") -> Optional[int]:
+        """
+        Place a new order with TP support and automatic symbol mapping
+        This function translates TradingView symbols to broker-specific symbols
+        """
         if not self.initialized:
             if not self.initialize():
                 return None
         
+        # Map symbol for broker compatibility - CRITICAL FOR XM BROKER
+        mt5_symbol = self._map_symbol(symbol)
+        
         try:
-            order_type_mt5 = mt5.ORDER_TYPE_BUY if order_type == "buy" else mt5.ORDER_TYPE_SELL
-            sl_type = mt5.ORDER_TYPE_SELL if order_type == "buy" else mt5.ORDER_TYPE_BUY
+            # Get symbol info using the mapped broker symbol
+            symbol_info = mt5.symbol_info(mt5_symbol)
+            if symbol_info is None:
+                print(f"❌ Symbol {mt5_symbol} not found in MT5")
+                return None
+                
+            if not symbol_info.visible:
+                print(f"Symbol {mt5_symbol} is not visible, attempting to enable")
+                if not mt5.symbol_select(mt5_symbol, True):
+                    print(f"❌ Failed to enable symbol {mt5_symbol}")
+                    return None
             
+            # Determine order type and get current price
+            if order_type == "buy":
+                order_type_mt5 = mt5.ORDER_TYPE_BUY
+                price = mt5.symbol_info_tick(mt5_symbol).ask
+            else:
+                order_type_mt5 = mt5.ORDER_TYPE_SELL
+                price = mt5.symbol_info_tick(mt5_symbol).bid
+            
+            # Round prices to symbol's digit precision
+            digits = symbol_info.digits
+            price = round(price, digits)
+            sl = round(sl, digits)
+            if tp:
+                tp = round(tp, digits)
+            
+            # Prepare order request with mapped symbol
             request = {
                 "action": mt5.TRADE_ACTION_DEAL,
-                "symbol": symbol,
+                "symbol": mt5_symbol,  # Use broker's symbol name
                 "volume": lot_size,
                 "type": order_type_mt5,
                 "price": price,
@@ -61,68 +107,99 @@ class MT5Client:
                 "magic": 234000,
                 "comment": comment,
                 "type_time": mt5.ORDER_TIME_GTC,
-                "type_filling": mt5.ORDER_FILLING_FOK,
+                "type_filling": mt5.ORDER_FILLING_IOC,
             }
             
+            # Add TP if provided
+            if tp:
+                request["tp"] = tp
+            
+            # Send order to MT5
             result = mt5.order_send(request)
             
             if result.retcode != mt5.TRADE_RETCODE_DONE:
-                print(f"Order failed: {result.comment}")
+                print(f"❌ Order failed: {result.comment} (Error code: {result.retcode})")
+                print(f"Request details: Symbol={mt5_symbol}, Lot={lot_size}, Price={price}, SL={sl}, TP={tp}")
                 return None
-                
+            
+            print(f"✅ Order placed successfully: Ticket #{result.order}")
             return result.order
             
         except Exception as e:
-            print(f"Order placement error: {str(e)}")
+            print(f"❌ Order placement error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return None
 
     def close_position(self, position_id: int, percentage: float = 100):
-        """Close a position (fully or partially)"""
+        """Close a position completely"""
         if not self.initialized:
             if not self.initialize():
                 return False
         
         try:
-            position = mt5.positions_get(ticket=position_id)
-            if not position:
+            # Get position by ticket
+            positions = mt5.positions_get(ticket=position_id)
+            if not positions:
                 print(f"Position {position_id} not found")
                 return False
                 
-            position = position[0]
-            volume_to_close = position.volume * (percentage / 100)
+            position = positions[0]
             
-            order_type = mt5.ORDER_TYPE_SELL if position.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
+            # Prepare close request
+            symbol_info = mt5.symbol_info(position.symbol)
+            
+            if position.type == mt5.ORDER_TYPE_BUY:
+                order_type = mt5.ORDER_TYPE_SELL
+                price = mt5.symbol_info_tick(position.symbol).bid
+            else:
+                order_type = mt5.ORDER_TYPE_BUY
+                price = mt5.symbol_info_tick(position.symbol).ask
             
             request = {
                 "action": mt5.TRADE_ACTION_DEAL,
                 "position": position_id,
                 "symbol": position.symbol,
-                "volume": volume_to_close,
+                "volume": position.volume,
                 "type": order_type,
-                "price": mt5.symbol_info_tick(position.symbol).ask if order_type == mt5.ORDER_TYPE_SELL else mt5.symbol_info_tick(position.symbol).bid,
+                "price": price,
                 "deviation": 20,
                 "magic": 234000,
                 "comment": f"Close_{percentage}%",
                 "type_time": mt5.ORDER_TIME_GTC,
-                "type_filling": mt5.ORDER_FILLING_FOK,
+                "type_filling": mt5.ORDER_FILLING_IOC,
             }
             
             result = mt5.order_send(request)
-            return result.retcode == mt5.TRADE_RETCODE_DONE
             
+            if result.retcode == mt5.TRADE_RETCODE_DONE:
+                print(f"✅ Position {position_id} closed successfully")
+                return True
+            else:
+                print(f"Failed to close position: {result.comment}")
+                return False
+                
         except Exception as e:
             print(f"Position close error: {str(e)}")
             return False
 
     def get_current_price(self, symbol: str) -> float:
-        """Get current price for a symbol"""
+        """
+        Get current price for a symbol with automatic mapping support
+        Handles both TradingView symbols and broker symbols
+        """
         if not self.initialized:
             if not self.initialize():
                 return 0.0
         
+        # Map symbol to broker's format
+        mt5_symbol = self._map_symbol(symbol)
+        
         try:
-            tick = mt5.symbol_info_tick(symbol)
-            return (tick.ask + tick.bid) / 2
+            tick = mt5.symbol_info_tick(mt5_symbol)
+            if tick:
+                return (tick.ask + tick.bid) / 2
+            return 0.0
         except:
             return 0.0
 
@@ -134,12 +211,15 @@ class MT5Client:
         
         try:
             account_info = mt5.account_info()
-            return account_info.balance
+            if account_info:
+                return account_info.balance
+            return 0.0
         except:
             return 0.0
 
     def shutdown(self):
-        """Shutdown MT5 connection"""
+        """Shutdown MT5 connection gracefully"""
         if self.initialized:
             mt5.shutdown()
             self.initialized = False
+            print("MT5 connection closed")

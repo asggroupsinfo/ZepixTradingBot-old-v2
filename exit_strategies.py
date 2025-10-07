@@ -79,6 +79,31 @@ class ExitStrategyManager:
             print(f"Trailing stop check error: {str(e)}")
             return False
 
+    # 🔥 NEW FUNCTION ADDED - Missing function fix
+    def check_exit_conditions(self, trade: Trade) -> bool:
+        """Check if exit conditions are met for a trade"""
+        try:
+            if trade.trade_id in self.active_strategies:
+                strategy = self.active_strategies[trade.trade_id]
+                current_price = self.mt5_client.get_current_price(trade.symbol)
+                
+                if strategy['type'] == 'trailing_stop':
+                    if trade.direction == "buy":
+                        sl_price = strategy['best_price'] - strategy['trailing_points']
+                        return current_price <= sl_price
+                    else:
+                        sl_price = strategy['best_price'] + strategy['trailing_points']
+                        return current_price >= sl_price
+                        
+                elif strategy['type'] == 'time_based':
+                    return datetime.now() >= strategy['expiry_time']
+                    
+            return False
+            
+        except Exception as e:
+            print(f"Exit condition check error: {str(e)}")
+            return False
+
     def add_trailing_stop(self, trade: Trade, trailing_points: float = 50.0):
         """Add trailing stop loss to a trade"""
         self.active_strategies[trade.trade_id] = {

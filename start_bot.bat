@@ -1,8 +1,14 @@
 @echo off
-cd /d C:\ZepixTrandingbot-New
+title Zepix Trading Bot v2.0
+cd /d E:\ZepixTrandingbot-New
+echo Starting Zepix Trading Bot v2.0...
+echo ================================
+echo Features Enabled:
+echo - Fixed Lot Sizes
+echo - Re-entry System
+echo - SL Hunting Protection
+echo - 1:1 Risk-Reward
+echo ================================
 call venv\Scripts\activate.bat
-
-REM Start python without console window
-start /B venv\Scripts\python.exe main.py --host 127.0.0.1 --port 8000
-
-echo Bot started in background. Check logs for details.
+python main.py --host 0.0.0.0 --port 8000
+pause

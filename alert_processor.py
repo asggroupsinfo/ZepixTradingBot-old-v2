@@ -8,13 +8,18 @@ class AlertProcessor:
         self.config = config
         self.recent_alerts: List[Alert] = []
         self.alert_window = timedelta(minutes=5)
-
+    
     def validate_alert(self, alert_data: Dict[str, Any]) -> bool:
         """Validate incoming alert"""
         try:
-            print(f"📨 Received alert: {alert_data}")  # DEBUG LOGGING
+            print(f"📨 Received alert: {alert_data}")
             
-            alert = Alert(**alert_data)
+            # Add timestamp if not present
+            if 'timestamp' not in alert_data:
+                alert_data['timestamp'] = datetime.now().isoformat()
+            
+            # Store raw_data properly
+            alert = Alert(**alert_data, raw_data=alert_data)
             
             # Check if alert is duplicate
             if self.is_duplicate_alert(alert):
@@ -27,7 +32,7 @@ class AlertProcessor:
                 return False
                 
             # Check if timeframe is valid
-            if alert.tf not in ['1h', '15m', '5m']:
+            if alert.tf not in ['1h', '15m', '5m', '1d']:
                 print(f"❌ Invalid timeframe: {alert.tf}")
                 return False
                 
@@ -50,8 +55,10 @@ class AlertProcessor:
             
         except Exception as e:
             print(f"❌ Alert validation error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return False
-
+    
     def is_duplicate_alert(self, alert: Alert) -> bool:
         """Check if this is a duplicate alert"""
         current_time = datetime.now()
@@ -64,20 +71,40 @@ class AlertProcessor:
                 return True
                 
         return False
-
+    
     def is_valid_symbol(self, symbol: str) -> bool:
         """Check if symbol is valid for trading"""
-        valid_symbols = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'USDCAD']
+        valid_symbols = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'USDCAD', 
+                        'AUDUSD', 'NZDUSD', 'EURJPY', 'GBPJPY', 'AUDJPY']
         return symbol in valid_symbols
-
+    
     def clean_old_alerts(self):
         """Remove alerts older than the alert window"""
-        current_time = datetime.now()
-        self.recent_alerts = [
-        alert for alert in self.recent_alerts
-        if alert.raw_data and current_time - datetime.fromisoformat(alert.raw_data.get('timestamp', current_time.isoformat())) < self.alert_window
-    ]
-
+        try:
+            current_time = datetime.now()
+            cleaned_alerts = []
+            
+            for alert in self.recent_alerts:
+                timestamp_str = None
+                
+                if alert.raw_data and isinstance(alert.raw_data, dict):
+                    timestamp_str = alert.raw_data.get('timestamp')
+                
+                if timestamp_str:
+                    try:
+                        alert_time = datetime.fromisoformat(timestamp_str)
+                        if current_time - alert_time < self.alert_window:
+                            cleaned_alerts.append(alert)
+                    except (ValueError, TypeError):
+                        cleaned_alerts.append(alert)
+                else:
+                    cleaned_alerts.append(alert)
+            
+            self.recent_alerts = cleaned_alerts
+            
+        except Exception as e:
+            print(f"⚠️ Error cleaning alerts: {str(e)}")
+    
     def get_recent_alerts(self, alert_type: str = None, symbol: str = None, tf: str = None) -> List[Alert]:
         """Get recent alerts filtered by type, symbol, or timeframe"""
         filtered = self.recent_alerts
