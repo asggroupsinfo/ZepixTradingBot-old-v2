@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from config import Config
 from models import Alert
@@ -126,7 +126,7 @@ class AlertProcessor:
         except Exception as e:
             print(f"⚠️ Error cleaning alerts: {str(e)}")
     
-    def get_recent_alerts(self, alert_type: str = None, symbol: str = None, tf: str = None) -> List[Alert]:
+    def get_recent_alerts(self, alert_type: Optional[str] = None, symbol: Optional[str] = None, tf: Optional[str] = None) -> List[Alert]:
         """Get recent alerts filtered by type, symbol, or timeframe"""
         filtered = self.recent_alerts
         

@@ -40,6 +40,18 @@
                 "mode": "MANUAL",
                 "last_update": "2025-10-07T06:14:08.730995"
             }
+        },
+        "GBPUSD": {
+            "1h": {
+                "trend": "BULLISH",
+                "mode": "AUTO",
+                "last_update": "2025-10-07T06:15:36.997864"
+            },
+            "15m": {
+                "trend": "BULLISH",
+                "mode": "AUTO",
+                "last_update": "2025-10-07T06:15:38.635119"
+            }
         }
     },
     "default_mode": "AUTO"

@@ -36,14 +36,31 @@ async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown"""
     # Startup
     success = await trading_engine.initialize()
+    
+    # Critical: If live trading mode is enabled, abort if MT5 fails to connect
+    if not config.get('simulate_orders', False) and not success:
+        error_msg = "❌ CRITICAL: Live trading mode enabled but MT5 connection failed!\n" \
+                   "✋ Bot startup aborted to prevent trading errors.\n" \
+                   "🔧 Please verify:\n" \
+                   "  1. MetaTrader 5 is installed and running\n" \
+                   "  2. MT5 credentials are correct in environment variables\n" \
+                   "  3. MT5 server is accessible"
+        telegram_bot.send_message(error_msg)
+        print(error_msg)
+        raise RuntimeError("MT5 connection required for live trading mode")
+    
     if success:
-        telegram_bot.send_message("🤖 Trading Bot v2.0 Started Successfully!\n📊 1:1 RR System Active\n🔄 Re-entry System Enabled")
+        mode = "SIMULATION" if config.get('simulate_orders', False) else "LIVE TRADING"
+        telegram_bot.send_message(f"🤖 Trading Bot v2.0 Started Successfully!\n"
+                                 f"🔧 Mode: {mode}\n"
+                                 f"📊 1:1 RR System Active\n"
+                                 f"🔄 Re-entry System Enabled")
         # Start trade management task
         asyncio.create_task(trading_engine.manage_open_trades())
         # Start Telegram polling
         telegram_bot.start_polling()
     else:
-        telegram_bot.send_message("❌ Trading Bot Failed to Initialize!")
+        telegram_bot.send_message("⚠️ Trading Bot Started in Simulation Mode (MT5 not available)")
     
     yield
     

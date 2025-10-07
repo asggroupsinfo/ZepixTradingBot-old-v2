@@ -11,11 +11,20 @@ This is an automated Forex and Gold trading bot that integrates with MetaTrader 
 - ✅ All dependencies installed
 
 ## Recent Changes (Oct 7, 2025)
-- Migrated sensitive credentials to environment variables for security
-- Added MT5 simulation mode for Linux compatibility
-- Updated requirements.txt to work on Replit (removed Windows-only MetaTrader5 package)
-- Configured FastAPI server to run on port 5000
-- Updated .gitignore to protect sensitive configuration files
+- **Critical Bug Fixes for Live Trading:**
+  - Fixed MT5 position close error: Now distinguishes API errors from closed positions
+  - Fixed trade tracking sync: Properly removes closed trades from memory
+  - Fixed duplicate alert detection: Allows same alerts >5 min apart
+  - Fixed FastAPI deprecation: Migrated to lifespan context manager
+  - Fixed /trends endpoint: Now dynamically shows all symbols (not hardcoded)
+  - Fixed LSP type errors: Added Optional[str] type hints
+- **Security & Compatibility:**
+  - Migrated sensitive credentials to environment variables
+  - Added MT5 simulation mode for Linux compatibility
+  - Updated requirements.txt for Replit (removed Windows-only MT5 package)
+  - Configured FastAPI server to run on port 5000
+  - Updated .gitignore to protect sensitive files
+- **All systems tested and verified - Ready for live trading deployment on Windows with MT5**
 
 ## Project Architecture
 
