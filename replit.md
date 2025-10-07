@@ -139,12 +139,44 @@ The bot is configured to run automatically. It will:
 3. Accept TradingView alerts and simulate trades
 4. Send notifications via Telegram
 
-### On Windows (Production)
-For live trading with real MT5:
-1. Install MetaTrader 5
-2. Set environment variables with real credentials
-3. Change `simulate_orders` to `false` in config.json
-4. Run: `python main.py --host 0.0.0.0 --port 8000`
+### On Windows (Production - Live Trading)
+For live trading with real MT5, follow these steps:
+
+**Step 1: Environment Setup**
+1. Install MetaTrader 5 on Windows
+2. Create `.env` file with your credentials (use `.env.example` as template):
+   ```
+   TELEGRAM_TOKEN=your_actual_telegram_token
+   TELEGRAM_CHAT_ID=your_actual_chat_id
+   MT5_LOGIN=your_mt5_login
+   MT5_PASSWORD=your_mt5_password
+   MT5_SERVER=your_mt5_server
+   ```
+
+**Step 2: Enable Live Trading Mode**
+Option A: Use production config file:
+- Copy `config_prod.json` contents and save as `config.json`
+- This sets `simulate_orders: false` for live trading
+
+Option B: Manually edit config.json:
+- Open `config.json`
+- Change `"simulate_orders": true` to `"simulate_orders": false`
+
+**Step 3: Launch Bot**
+```bash
+python main.py --host 0.0.0.0 --port 8000
+```
+
+**Step 4: Verify Startup**
+- Bot will validate MT5 connection on startup
+- If MT5 fails in live mode → Bot aborts with clear error message
+- If successful → Telegram notification shows "Mode: LIVE TRADING"
+- ⚠️ Never run live mode without MT5 connection verified!
+
+**Production Safety:**
+- ✅ Bot aborts startup if live mode enabled but MT5 unavailable
+- ✅ All credentials loaded from environment variables (never hardcoded)
+- ✅ Mode clearly displayed in startup message (SIMULATION vs LIVE TRADING)
 
 ## Security Notes
 - All sensitive credentials are stored as environment variables
