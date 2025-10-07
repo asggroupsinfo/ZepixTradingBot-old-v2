@@ -2,14 +2,32 @@ import json
 import os
 from typing import Dict, Any
 
+def safe_int_from_env(env_var: str, default: int = 0) -> int:
+    """Safely parse integer from environment variable with normalization"""
+    value = os.getenv(env_var)
+    if value is None:
+        return default
+    
+    # Strip and normalize
+    value = value.strip().replace(",", "").replace("+", "")
+    
+    if not value:
+        return default
+        
+    try:
+        return int(value)
+    except ValueError:
+        print(f"⚠️  Warning: Invalid integer value for {env_var}: '{os.getenv(env_var)}', using default {default}")
+        return default
+
 class Config:
     def __init__(self):
         self.config_file = "config.json"
         self.default_config = {
             "telegram_token": os.getenv("TELEGRAM_TOKEN", ""),
-            "telegram_chat_id": int(os.getenv("TELEGRAM_CHAT_ID", "0")),
-            "allowed_telegram_user": int(os.getenv("TELEGRAM_CHAT_ID", "0")),
-            "mt5_login": int(os.getenv("MT5_LOGIN", "0")),
+            "telegram_chat_id": safe_int_from_env("TELEGRAM_CHAT_ID", 0),
+            "allowed_telegram_user": safe_int_from_env("TELEGRAM_CHAT_ID", 0),
+            "mt5_login": safe_int_from_env("MT5_LOGIN", 0),
             "mt5_password": os.getenv("MT5_PASSWORD", ""),
             "mt5_server": os.getenv("MT5_SERVER", ""),
             "risk_tiers": {
@@ -56,6 +74,31 @@ class Config:
         if os.path.exists(self.config_file):
             with open(self.config_file, 'r') as f:
                 self.config = json.load(f)
+            
+            # Environment variables ALWAYS override config.json (highest priority)
+            # If env var is SET (even if empty), it takes precedence
+            # If env var is NOT SET (None), keep config.json value
+            
+            if os.getenv("TELEGRAM_TOKEN") is not None:
+                self.config["telegram_token"] = os.getenv("TELEGRAM_TOKEN", "")
+            
+            if os.getenv("TELEGRAM_CHAT_ID") is not None:
+                chat_id = safe_int_from_env("TELEGRAM_CHAT_ID", 0)
+                self.config["telegram_chat_id"] = chat_id
+                self.config["allowed_telegram_user"] = chat_id
+            
+            if os.getenv("MT5_LOGIN") is not None:
+                self.config["mt5_login"] = safe_int_from_env("MT5_LOGIN", 0)
+            
+            if os.getenv("MT5_PASSWORD") is not None:
+                self.config["mt5_password"] = os.getenv("MT5_PASSWORD", "")
+            
+            if os.getenv("MT5_SERVER") is not None:
+                self.config["mt5_server"] = os.getenv("MT5_SERVER", "")
+            
+            # Debug: Show loaded credentials (mask password)
+            if self.config.get("debug", False):
+                print(f"🔧 Config loaded - MT5 Login: {self.config['mt5_login']}, Server: {self.config['mt5_server']}")
         else:
             self.config = self.default_config
             self.save_config()

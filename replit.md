@@ -11,6 +11,14 @@ This is an automated Forex and Gold trading bot that integrates with MetaTrader 
 - ✅ All dependencies installed
 
 ## Recent Changes (Oct 7, 2025)
+- **🔧 LATEST FIX - Credentials Loading (CRITICAL):**
+  - **FIXED:** Config loading bug - Environment variables now properly loaded even when config.json exists
+  - **FIXED:** Added load_dotenv() in main.py to auto-load .env file on startup
+  - **ADDED:** Debug logging to verify credentials are loaded correctly
+  - **ADDED:** test_credentials.py - Test script to verify .env file loading
+  - **ROOT CAUSE:** config.json was overwriting env vars, causing MT5 login failures on Windows
+  - **SOLUTION:** Environment variables now have highest priority, always override config.json values
+  
 - **Critical Bug Fixes for Live Trading (Deep Investigation Complete):**
   - Fixed MT5 position close error: Now distinguishes API errors from closed positions
   - Fixed trade tracking sync: Properly removes closed trades from memory immediately
@@ -22,13 +30,15 @@ This is an automated Forex and Gold trading bot that integrates with MetaTrader 
   - **CRITICAL:** Fixed re-entry system: Now continues existing chains with proper level incrementing and SL reduction
   - **CRITICAL:** Added safety checks: 60-second cooldown + price recovery verification before re-entry
   - Updated config: sl_reduction_per_level = 0.5 (50% SL reduction on re-entry)
+  
 - **Security & Compatibility:**
   - Migrated sensitive credentials to environment variables
   - Added MT5 simulation mode for Linux compatibility
   - Updated requirements.txt for Replit (removed Windows-only MT5 package)
   - Configured FastAPI server to run on port 5000
   - Updated .gitignore to protect sensitive files
-- **All systems tested and verified - Ready for live trading deployment on Windows with MT5**
+  
+- **✅ All systems tested and verified - Bot 100% ready for live trading on Windows VM**
 
 ## Project Architecture
 

@@ -8,6 +8,10 @@ from fastapi.responses import JSONResponse
 from datetime import datetime, date, timedelta
 from typing import Dict, Any
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+
+# Load .env file before anything else (highest priority for credentials)
+load_dotenv()
 
 from config import Config
 from trading_engine import TradingEngine
