@@ -2,14 +2,14 @@
     "symbols": {
         "XAUUSD": {
             "1h": {
-                "trend": "BEARISH",
+                "trend": "BULLISH",
                 "mode": "AUTO",
-                "last_update": "2025-10-07T05:57:41.113534"
+                "last_update": "2025-10-07T19:30:26.038350"
             },
             "15m": {
-                "trend": "BEARISH",
+                "trend": "BULLISH",
                 "mode": "AUTO",
-                "last_update": "2025-10-07T05:57:41.711491"
+                "last_update": "2025-10-07T19:30:27.453460"
             },
             "1d": {
                 "trend": "NEUTRAL",
@@ -26,12 +26,12 @@
             "1h": {
                 "trend": "BULLISH",
                 "mode": "AUTO",
-                "last_update": "2025-10-07T05:58:15.106812"
+                "last_update": "2025-10-07T19:33:10.273708"
             },
             "15m": {
                 "trend": "BULLISH",
                 "mode": "AUTO",
-                "last_update": "2025-10-07T05:58:16.716907"
+                "last_update": "2025-10-07T19:33:10.832347"
             }
         },
         "AUDUSD": {
@@ -51,6 +51,18 @@
                 "trend": "BULLISH",
                 "mode": "AUTO",
                 "last_update": "2025-10-07T06:15:38.635119"
+            }
+        },
+        "GBPJPY": {
+            "1h": {
+                "trend": "BULLISH",
+                "mode": "AUTO",
+                "last_update": "2025-10-07T19:33:31.651661"
+            },
+            "15m": {
+                "trend": "BULLISH",
+                "mode": "AUTO",
+                "last_update": "2025-10-07T19:33:33.241771"
             }
         }
     },
