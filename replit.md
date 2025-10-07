@@ -11,13 +11,17 @@ This is an automated Forex and Gold trading bot that integrates with MetaTrader 
 - ✅ All dependencies installed
 
 ## Recent Changes (Oct 7, 2025)
-- **Critical Bug Fixes for Live Trading:**
+- **Critical Bug Fixes for Live Trading (Deep Investigation Complete):**
   - Fixed MT5 position close error: Now distinguishes API errors from closed positions
-  - Fixed trade tracking sync: Properly removes closed trades from memory
+  - Fixed trade tracking sync: Properly removes closed trades from memory immediately
   - Fixed duplicate alert detection: Allows same alerts >5 min apart
   - Fixed FastAPI deprecation: Migrated to lifespan context manager
   - Fixed /trends endpoint: Now dynamically shows all symbols (not hardcoded)
   - Fixed LSP type errors: Added Optional[str] type hints
+  - **CRITICAL:** Fixed PnL calculation bug: Now uses symbol-specific pip values (was causing 100x errors on JPY pairs)
+  - **CRITICAL:** Fixed re-entry system: Now continues existing chains with proper level incrementing and SL reduction
+  - **CRITICAL:** Added safety checks: 60-second cooldown + price recovery verification before re-entry
+  - Updated config: sl_reduction_per_level = 0.5 (50% SL reduction on re-entry)
 - **Security & Compatibility:**
   - Migrated sensitive credentials to environment variables
   - Added MT5 simulation mode for Linux compatibility

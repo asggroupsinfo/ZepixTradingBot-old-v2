@@ -116,7 +116,7 @@
     },
     "re_entry_config": {
         "max_chain_levels": 2,
-        "sl_reduction_per_level": 0.2,
+        "sl_reduction_per_level": 0.5,
         "recovery_window_minutes": 30,
         "min_time_between_re_entries": 60
     },

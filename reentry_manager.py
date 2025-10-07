@@ -73,8 +73,9 @@ class ReEntryManager:
         if sl_opportunity["eligible"]:
             result["is_reentry"] = True
             result["type"] = "sl_recovery"
-            result["level"] = 1
-            result["sl_adjustment"] = 0.8  # 80% of original SL for recovery
+            result["chain_id"] = sl_opportunity["chain_id"]  # Continue existing chain!
+            result["level"] = sl_opportunity["level"]  # Use calculated level, not hardcoded!
+            result["sl_adjustment"] = sl_opportunity["sl_adjustment"]  # Use progressive reduction!
             return result
         
         return result
@@ -120,7 +121,7 @@ class ReEntryManager:
     
     def _check_sl_recovery(self, symbol: str, signal: str, 
                           price: float) -> Dict[str, Any]:
-        """Check if this is a recovery after SL hit"""
+        """Check if this is a recovery after SL hit - continues existing chain"""
         
         result = {"eligible": False}
         
@@ -137,15 +138,54 @@ class ReEntryManager:
             if time_since_sl > timedelta(minutes=self.config["re_entry_config"]["recovery_window_minutes"]):
                 continue
             
+            # SAFETY CHECK #1: Enforce minimum time between re-entries (cooldown)
+            min_time_seconds = self.config["re_entry_config"]["min_time_between_re_entries"]
+            if time_since_sl < timedelta(seconds=min_time_seconds):
+                print(f"⏳ Re-entry cooldown active ({time_since_sl.seconds}s / {min_time_seconds}s)")
+                continue
+            
             # Check if same direction
             signal_direction = "buy" if signal in ["buy", "bull"] else "sell"
             if signal_direction != sl_event["direction"]:
                 continue
             
-            # Check if price has recovered to near original entry
-            recovery_zone = 0.001 if symbol != "XAUUSD" else 1.0  # 10 pips for forex, 100 points for gold
-            if abs(price - sl_event["original_entry"]) <= recovery_zone:
+            # Get chain info to continue it (not create new one!)
+            chain_id = sl_event.get("chain_id")
+            chain = self.active_chains.get(chain_id) if chain_id else None
+            
+            # Only allow re-entry if chain exists and hasn't hit max level
+            if chain and chain.current_level < chain.max_level:
+                # SAFETY CHECK #2: Verify price has recovered towards original entry
+                # For BUY: new price should be higher than SL (recovering upwards)
+                # For SELL: new price should be lower than SL (recovering downwards)
+                price_recovered = False
+                if signal_direction == "buy":
+                    price_recovered = price > sl_event["sl_price"]
+                else:
+                    price_recovered = price < sl_event["sl_price"]
+                
+                if not price_recovered:
+                    print(f"❌ Re-entry blocked: Price has not recovered from SL level")
+                    continue
+                
                 result["eligible"] = True
+                result["chain_id"] = chain.chain_id
+                result["level"] = chain.current_level + 1
+                
+                # Calculate SL adjustment (progressive reduction)
+                reduction_per_level = self.config["re_entry_config"]["sl_reduction_per_level"]
+                result["sl_adjustment"] = (1 - reduction_per_level) ** (result["level"] - 1)
+                
+                # Reactivate chain
+                chain.status = "active"
+                
+                print(f"✅ SL Recovery Re-Entry Eligible (Safe):")
+                print(f"   Chain: {chain.chain_id}")
+                print(f"   Level: {result['level']}/{chain.max_level}")
+                print(f"   SL Adjustment: {result['sl_adjustment']:.2f}")
+                print(f"   Time Since SL: {time_since_sl.seconds}s")
+                print(f"   Price Recovered: {price_recovered}")
+                
                 break
         
         return result
@@ -186,7 +226,8 @@ class ReEntryManager:
             "time": datetime.now(),
             "direction": trade.direction,
             "sl_price": trade.sl,
-            "original_entry": trade.original_entry or trade.entry
+            "original_entry": trade.original_entry or trade.entry,
+            "chain_id": trade.chain_id  # Store chain_id to continue chain on re-entry,
         })
         
         # Mark chain as stopped if it exists

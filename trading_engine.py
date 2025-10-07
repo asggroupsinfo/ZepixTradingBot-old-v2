@@ -303,11 +303,15 @@ class TradingEngine:
                 )
                 if trade_id:
                     trade.trade_id = trade_id
-                    # Update chain with new trade
-                    self.reentry_manager.update_chain_level(reentry_info["chain_id"], trade_id)
                 else:
                     self.telegram_bot.send_message(f"❌ Re-entry order failed for {alert.symbol}")
                     return
+            else:
+                # Simulation mode: generate pseudo trade ID
+                trade.trade_id = int(datetime.now().timestamp() * 1000) % 1000000
+            
+            # Update chain with new trade (both live and simulation modes)
+            self.reentry_manager.update_chain_level(reentry_info["chain_id"], trade.trade_id)
             
             self.open_trades.append(trade)
             self.risk_manager.add_open_trade(trade)
@@ -442,6 +446,10 @@ class TradingEngine:
             trade.status = "closed"
             trade.close_time = datetime.now().isoformat()
             self.risk_manager.remove_open_trade(trade)
+            
+            # Remove from open trades list immediately
+            if trade in self.open_trades:
+                self.open_trades.remove(trade)
             
             # Calculate PnL using proper pip values per symbol
             symbol_config = self.config["symbol_config"][trade.symbol]
