@@ -15,6 +15,11 @@
                 "trend": "NEUTRAL",
                 "mode": "AUTO",
                 "last_update": "2025-09-30T12:39:58.676318"
+            },
+            "5m": {
+                "trend": "BULLISH",
+                "mode": "MANUAL",
+                "last_update": "2025-10-07T06:12:15.680524"
             }
         },
         "EURUSD": {
@@ -27,6 +32,13 @@
                 "trend": "BULLISH",
                 "mode": "AUTO",
                 "last_update": "2025-10-07T05:58:16.716907"
+            }
+        },
+        "AUDUSD": {
+            "1h": {
+                "trend": "BULLISH",
+                "mode": "MANUAL",
+                "last_update": "2025-10-07T06:14:08.730995"
             }
         }
     },

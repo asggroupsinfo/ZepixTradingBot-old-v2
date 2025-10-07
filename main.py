@@ -130,7 +130,15 @@ async def resume_trading():
 async def get_trends():
     """Get all trends"""
     trends = {}
-    symbols = ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "USDCAD"]
+    
+    # Get all symbols that have trends set (both from webhooks and manual)
+    trend_data = trading_engine.trend_manager.trends.get("symbols", {})
+    
+    # If no symbols set, show default list
+    if not trend_data:
+        symbols = ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "USDCAD"]
+    else:
+        symbols = list(trend_data.keys())
     
     for symbol in symbols:
         trends[symbol] = trading_engine.trend_manager.get_all_trends(symbol)
