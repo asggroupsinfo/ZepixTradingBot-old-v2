@@ -26,10 +26,32 @@
     "manual_lot_overrides": {
         "10000": 0.15
     },
-    "risk_caps": {
-        "LOW": 30,
-        "MEDIUM": 50,
-        "HIGH": 80
+    "risk_by_account_tier": {
+        "5000": {
+            "LOW": {"risk_percent": 1.5, "risk_dollars": 75},
+            "MEDIUM": {"risk_percent": 1.5, "risk_dollars": 75},
+            "HIGH": {"risk_percent": 1.0, "risk_dollars": 50}
+        },
+        "10000": {
+            "LOW": {"risk_percent": 1.5, "risk_dollars": 150},
+            "MEDIUM": {"risk_percent": 1.5, "risk_dollars": 150},
+            "HIGH": {"risk_percent": 1.0, "risk_dollars": 100}
+        },
+        "25000": {
+            "LOW": {"risk_percent": 2.0, "risk_dollars": 500},
+            "MEDIUM": {"risk_percent": 2.0, "risk_dollars": 500},
+            "HIGH": {"risk_percent": 1.5, "risk_dollars": 375}
+        },
+        "50000": {
+            "LOW": {"risk_percent": 2.0, "risk_dollars": 1000},
+            "MEDIUM": {"risk_percent": 2.0, "risk_dollars": 1000},
+            "HIGH": {"risk_percent": 2.0, "risk_dollars": 1000}
+        },
+        "100000": {
+            "LOW": {"risk_percent": 2.0, "risk_dollars": 2000},
+            "MEDIUM": {"risk_percent": 2.5, "risk_dollars": 2500},
+            "HIGH": {"risk_percent": 3.0, "risk_dollars": 3000}
+        }
     },
     "symbol_config": {
         "EURUSD": {
@@ -95,11 +117,12 @@
         }
     },
     "re_entry_config": {
-        "max_chain_levels": 5,
+        "max_chain_levels": 2,
         "sl_reduction_per_level": 0.2,
         "recovery_window_minutes": 30,
         "min_time_between_re_entries": 60
     },
+    "rr_ratio": 1.5,
     "risk_tiers": {
         "5000": {
             "daily_loss_limit": 200,

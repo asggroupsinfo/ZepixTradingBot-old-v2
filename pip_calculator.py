@@ -23,7 +23,10 @@ class PipCalculator:
         # Get symbol configuration using TradingView symbol name
         symbol_config = self.config["symbol_config"][symbol]
         volatility = symbol_config["volatility"]
-        risk_cap = self.config["risk_caps"][volatility]
+        
+        # Get account tier and risk cap based on balance and volatility
+        account_tier = self._get_account_tier(account_balance)
+        risk_cap = self.config["risk_by_account_tier"][account_tier][volatility]["risk_dollars"]
         
         # Special handling for gold - checks the is_gold flag in config
         if symbol_config.get("is_gold", False):
@@ -128,3 +131,19 @@ class PipCalculator:
         new_sl_distance = original_sl_distance * reduction_factor
         
         return new_sl_distance
+    
+    def _get_account_tier(self, balance: float) -> str:
+        """
+        Determine account tier based on balance
+        Returns tier key as string for config lookup
+        """
+        if balance < 7500:
+            return "5000"
+        elif balance < 17500:
+            return "10000"
+        elif balance < 37500:
+            return "25000"
+        elif balance < 75000:
+            return "50000"
+        else:
+            return "100000"

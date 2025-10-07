@@ -205,6 +205,7 @@ if __name__ == "__main__":
     parser.add_argument("--port", default=8000, type=int, help="Port number")
     args = parser.parse_args()
     
+    rr_ratio = config.get("rr_ratio", 1.0)
     print("=" * 50)
     print("ZEPIX TRADING BOT v2.0")
     print("=" * 50)
@@ -213,7 +214,7 @@ if __name__ == "__main__":
     print("✓ Fixed lot sizes")
     print("✓ Re-entry system") 
     print("✓ SL hunting protection")
-    print("✓ 1:1 Risk-Reward")
+    print(f"✓ 1:{rr_ratio} Risk-Reward")
     print("✓ Progressive SL reduction")
     print("=" * 50)
     

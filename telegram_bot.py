@@ -80,10 +80,11 @@ class TelegramBot:
 
     def handle_start(self, message):
         """Handle /start command"""
+        rr_ratio = self.config.get("rr_ratio", 1.0)
         welcome_msg = (
             "🤖 <b>Zepix Trading Bot v2.0</b>\n\n"
             "✅ Bot is active with enhanced features\n"
-            "📊 1:1 Risk-Reward System Active\n"
+            f"📊 1:{rr_ratio} Risk-Reward System Active\n"
             "🔄 Re-entry System Enabled\n\n"
             "<b>Core Commands:</b>\n"
             "/status - Complete bot status\n"
@@ -100,6 +101,9 @@ class TelegramBot:
             "/logic1_on/off - Control Logic 1\n"
             "/logic2_on/off - Control Logic 2\n"
             "/logic3_on/off - Control Logic 3\n\n"
+            "<b>Lot Size Control:</b>\n"
+            "/lot_size_status - View current lot settings\n"
+            "/set_lot_size TIER LOT - Override lot size\n\n"
             "<b>Trend Management:</b>\n"
             "/set_trend SYMBOL TIMEFRAME TREND - Set MANUAL trend\n"
             "/set_auto SYMBOL TIMEFRAME - Set AUTO mode (TradingView updates)\n"
@@ -393,6 +397,7 @@ class TelegramBot:
             self.send_message("📭 <b>No Open Trades</b>")
             return
         
+        rr_ratio = self.config.get("rr_ratio", 1.0)
         trades_msg = "📊 <b>Open Trades</b>\n\n"
         for i, trade in enumerate(self.trading_engine.open_trades, 1):
             if trade.status != "closed":
@@ -402,7 +407,7 @@ class TelegramBot:
                     f"Symbol: {trade.symbol} | {trade.direction.upper()}\n"
                     f"Strategy: {trade.strategy}\n"
                     f"Entry: {trade.entry:.5f} | SL: {trade.sl:.5f}\n"
-                    f"TP: {trade.tp:.5f} | RR: 1:1\n"
+                    f"TP: {trade.tp:.5f} | RR: 1:{rr_ratio}\n"
                     f"Lot: {trade.lot_size:.2f}\n"
                     "────────────────────\n"
                 )
@@ -481,7 +486,7 @@ class TelegramBot:
 
     def handle_lot_size_status(self, message):
         """Show current lot size settings"""
-        if not self.risk_manager:
+        if not self.risk_manager or not self.risk_manager.mt5_client:
             self.send_message("❌ Risk manager not initialized")
             return
         
@@ -603,7 +608,7 @@ class TelegramBot:
                         if not data.get("ok"):
                             print(f"Telegram API error: {data}")
                             time.sleep(10)
-                            continue5rt 
+                            continue 
                             
                         updates = data.get("result", [])
                         

@@ -168,7 +168,7 @@ class TradingEngine:
             )
             
             tp_price = self.pip_calculator.calculate_tp_price(
-                alert.price, sl_price, alert.signal, 1.0  # 1:1 RR
+                alert.price, sl_price, alert.signal, self.config["rr_ratio"]
             )
             
             # Create trade object
@@ -210,6 +210,7 @@ class TradingEngine:
             self.trade_count += 1
             
             # Send notification
+            rr_ratio = self.config["rr_ratio"]
             message = (
                 f"🎯 NEW TRADE #{self.trade_count}\n"
                 f"Strategy: {strategy}\n"
@@ -219,7 +220,7 @@ class TradingEngine:
                 f"SL: {sl_price:.5f}\n"
                 f"TP: {tp_price:.5f}\n"
                 f"Lots: {lot_size:.2f}\n"
-                f"Risk: 1:1 RR"
+                f"Risk: 1:{rr_ratio} RR"
             )
             self.telegram_bot.send_message(message)
             
@@ -249,13 +250,14 @@ class TradingEngine:
                 self.config["re_entry_config"]["sl_reduction_per_level"]
             )
             
-            # Calculate SL and TP prices
+            # Calculate SL and TP prices with configured RR ratio
+            rr_ratio = self.config["rr_ratio"]
             if alert.signal == "buy":
                 sl_price = alert.price - adjusted_sl_distance
-                tp_price = alert.price + adjusted_sl_distance  # 1:1 RR
+                tp_price = alert.price + (adjusted_sl_distance * rr_ratio)
             else:
                 sl_price = alert.price + adjusted_sl_distance
-                tp_price = alert.price - adjusted_sl_distance
+                tp_price = alert.price - (adjusted_sl_distance * rr_ratio)
             
             # Create trade object
             trade = Trade(
