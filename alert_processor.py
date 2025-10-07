@@ -21,6 +21,9 @@ class AlertProcessor:
             # Store raw_data properly
             alert = Alert(**alert_data, raw_data=alert_data)
             
+            # Clean old alerts BEFORE checking for duplicates
+            self.clean_old_alerts()
+            
             # Check if alert is duplicate
             if self.is_duplicate_alert(alert):
                 print("❌ Duplicate alert detected")
@@ -48,7 +51,6 @@ class AlertProcessor:
                     
             # Store alert
             self.recent_alerts.append(alert)
-            self.clean_old_alerts()
             
             print("✅ Alert validation successful")
             return True
@@ -61,9 +63,28 @@ class AlertProcessor:
     
     def is_duplicate_alert(self, alert: Alert) -> bool:
         """Check if this is a duplicate alert"""
-        current_time = datetime.now()
+        # Get incoming alert's timestamp
+        incoming_timestamp = datetime.now()
+        if alert.raw_data and isinstance(alert.raw_data, dict):
+            timestamp_str = alert.raw_data.get('timestamp')
+            if timestamp_str:
+                try:
+                    incoming_timestamp = datetime.fromisoformat(timestamp_str)
+                except (ValueError, TypeError):
+                    pass
         
         for recent_alert in self.recent_alerts:
+            # Skip alerts older than alert_window relative to incoming alert
+            if recent_alert.raw_data and isinstance(recent_alert.raw_data, dict):
+                recent_timestamp_str = recent_alert.raw_data.get('timestamp')
+                if recent_timestamp_str:
+                    try:
+                        recent_alert_time = datetime.fromisoformat(recent_timestamp_str)
+                        if incoming_timestamp - recent_alert_time >= self.alert_window:
+                            continue  # Skip old alerts (>5 min apart)
+                    except (ValueError, TypeError):
+                        pass  # If timestamp invalid, still check for duplicate
+            
             if (recent_alert.type == alert.type and
                 recent_alert.symbol == alert.symbol and
                 recent_alert.tf == alert.tf and
