@@ -6,12 +6,12 @@ class Config:
     def __init__(self):
         self.config_file = "config.json"
         self.default_config = {
-            "telegram_token": "8289959450:AAHKZ_SJWjVzbRZXLAxaJ6SLfcWtXG1kBnA",
-            "telegram_chat_id": 2139792302,
-            "allowed_telegram_user": 2139792302,
-            "mt5_login": 308646228,
-            "mt5_password": "Fast@@2801@@!!!",
-            "mt5_server": "XMGlobal-MT5 6",
+            "telegram_token": os.getenv("TELEGRAM_TOKEN", ""),
+            "telegram_chat_id": int(os.getenv("TELEGRAM_CHAT_ID", "0")),
+            "allowed_telegram_user": int(os.getenv("TELEGRAM_CHAT_ID", "0")),
+            "mt5_login": int(os.getenv("MT5_LOGIN", "0")),
+            "mt5_password": os.getenv("MT5_PASSWORD", ""),
+            "mt5_server": os.getenv("MT5_SERVER", ""),
             "risk_tiers": {
                 "5000": {"per_trade_cap": 150, "daily_loss_limit": 200, "max_total_loss": 500, "base_multiplier": 1.0},
                 "10000": {"per_trade_cap": 300, "daily_loss_limit": 400, "max_total_loss": 1000, "base_multiplier": 2.0},
