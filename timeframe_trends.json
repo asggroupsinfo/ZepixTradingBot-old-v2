@@ -4,12 +4,12 @@
             "1h": {
                 "trend": "BULLISH",
                 "mode": "AUTO",
-                "last_update": "2025-10-07T19:30:26.038350"
+                "last_update": "2025-10-07T19:42:59.075336"
             },
             "15m": {
                 "trend": "BULLISH",
                 "mode": "AUTO",
-                "last_update": "2025-10-07T19:30:27.453460"
+                "last_update": "2025-10-07T19:43:00.670896"
             },
             "1d": {
                 "trend": "NEUTRAL",
@@ -26,12 +26,12 @@
             "1h": {
                 "trend": "BULLISH",
                 "mode": "AUTO",
-                "last_update": "2025-10-07T19:33:10.273708"
+                "last_update": "2025-10-07T19:40:48.442062"
             },
             "15m": {
                 "trend": "BULLISH",
                 "mode": "AUTO",
-                "last_update": "2025-10-07T19:33:10.832347"
+                "last_update": "2025-10-07T19:40:50.039454"
             }
         },
         "AUDUSD": {
@@ -57,12 +57,12 @@
             "1h": {
                 "trend": "BULLISH",
                 "mode": "AUTO",
-                "last_update": "2025-10-07T19:33:31.651661"
+                "last_update": "2025-10-07T19:41:43.348574"
             },
             "15m": {
                 "trend": "BULLISH",
                 "mode": "AUTO",
-                "last_update": "2025-10-07T19:33:33.241771"
+                "last_update": "2025-10-07T19:41:44.946707"
             }
         }
     },

@@ -23,9 +23,7 @@
         "25000": 1.0,
         "100000": 5.0
     },
-    "manual_lot_overrides": {
-        "10000": 0.15
-    },
+    "manual_lot_overrides": {},
     "risk_by_account_tier": {
         "5000": {
             "LOW": {"risk_percent": 1.5, "risk_dollars": 75},

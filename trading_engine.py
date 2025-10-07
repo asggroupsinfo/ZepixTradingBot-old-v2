@@ -162,6 +162,10 @@ class TradingEngine:
                 self.telegram_bot.send_message("⚠️ Invalid lot size")
                 return
             
+            # Get symbol config for logging
+            symbol_config = self.config["symbol_config"][alert.symbol]
+            account_tier = self.pip_calculator._get_account_tier(account_balance)
+            
             # Calculate SL and TP using pip calculator
             sl_price, sl_distance = self.pip_calculator.calculate_sl_price(
                 alert.symbol, alert.price, alert.signal, lot_size, account_balance
@@ -170,6 +174,16 @@ class TradingEngine:
             tp_price = self.pip_calculator.calculate_tp_price(
                 alert.price, sl_price, alert.signal, self.config["rr_ratio"]
             )
+            
+            # Log SL/TP calculation details
+            sl_pips = abs(alert.price - sl_price) / symbol_config["pip_size"]
+            tp_pips = abs(tp_price - alert.price) / symbol_config["pip_size"]
+            print(f"📊 SL/TP Calculation:")
+            print(f"   Symbol: {alert.symbol} | Lot: {lot_size:.2f}")
+            print(f"   Entry: {alert.price:.5f}")
+            print(f"   SL: {sl_price:.5f} ({sl_pips:.1f} pips)")
+            print(f"   TP: {tp_price:.5f} ({tp_pips:.1f} pips)")
+            print(f"   Risk: ${account_tier} tier | Volatility: {symbol_config['volatility']}")
             
             # Create trade object
             trade = Trade(
@@ -390,14 +404,27 @@ class TradingEngine:
 
     def should_exit_by_trend_reversal(self, trade: Trade) -> bool:
         """Check if we should exit due to trend reversal"""
+        # Grace period: Don't exit trades within first 5 minutes of entry
+        # This prevents premature exits when signals are still arriving
+        try:
+            from datetime import datetime, timedelta
+            trade_open_time = datetime.fromisoformat(trade.open_time)
+            time_since_open = datetime.now() - trade_open_time
+            
+            if time_since_open < timedelta(minutes=5):
+                return False  # Grace period - don't check trend reversal yet
+        except:
+            pass  # If parsing fails, proceed with normal check
+        
         alignment = self.trend_manager.check_logic_alignment(trade.symbol, trade.strategy)
         
+        # Only exit if trend is CLEARLY reversed (not just neutral)
         if not alignment["aligned"]:
-            return True
+            return False  # Don't exit on neutral - only on clear reversal
         
         trade_direction = "BULLISH" if trade.direction == "buy" else "BEARISH"
         if alignment["direction"] != trade_direction:
-            return True
+            return True  # Exit on OPPOSITE direction
         
         return False
 
@@ -416,17 +443,26 @@ class TradingEngine:
             trade.close_time = datetime.now().isoformat()
             self.risk_manager.remove_open_trade(trade)
             
-            # Calculate PnL
-            if trade.direction == "buy":
-                pnl = (current_price - trade.entry) * trade.lot_size * 10000
-            else:
-                pnl = (trade.entry - current_price) * trade.lot_size * 10000
+            # Calculate PnL using proper pip values per symbol
+            symbol_config = self.config["symbol_config"][trade.symbol]
+            pip_size = symbol_config["pip_size"]
+            pip_value_per_std_lot = symbol_config["pip_value_per_std_lot"]
             
-            # Special handling for XAUUSD
-            if trade.symbol == "XAUUSD":
-                pnl = pnl / 100  # Adjust for gold pip value
+            # Calculate price difference in pips
+            price_diff = current_price - trade.entry if trade.direction == "buy" else trade.entry - current_price
+            pips_moved = price_diff / pip_size
+            
+            # Calculate PnL: pips × pip_value × lot_size
+            pip_value = pip_value_per_std_lot * trade.lot_size
+            pnl = pips_moved * pip_value
             
             trade.pnl = pnl
+            
+            # Log closure details
+            print(f"💰 Trade Closed: {trade.symbol} {trade.direction.upper()}")
+            print(f"   Entry: {trade.entry:.5f} → Close: {current_price:.5f}")
+            print(f"   Pips: {pips_moved:.1f} | PnL: ${pnl:.2f}")
+            print(f"   Reason: {reason}")
             
             # Update risk manager
             self.risk_manager.update_pnl(pnl)

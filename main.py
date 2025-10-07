@@ -198,6 +198,20 @@ async def set_lot_size(tier: int, lot_size: float):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@app.post("/reset_stats")
+async def reset_stats():
+    """Reset risk manager stats (for testing only)"""
+    try:
+        risk_manager.daily_loss = 0.0
+        risk_manager.daily_profit = 0.0
+        risk_manager.lifetime_loss = 0.0
+        risk_manager.total_trades = 0
+        risk_manager.winning_trades = 0
+        risk_manager.save_stats()
+        return {"status": "success", "message": "Stats reset successfully"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Zepix Trading Bot v2.0")
