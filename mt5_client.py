@@ -155,12 +155,24 @@ class MT5Client:
             if not self.initialize():
                 return False
         
+        # Simulation mode - always return success
+        if not MT5_AVAILABLE or self.config.get("simulate_orders", True):
+            print(f"🎭 SIMULATED CLOSE: Position #{position_id}")
+            return True
+        
         try:
             # Get position by ticket
             positions = mt5.positions_get(ticket=position_id)
-            if not positions:
-                print(f"Position {position_id} not found")
-                return False
+            
+            # Check if it's an API error vs position not found
+            if positions is None:
+                error = mt5.last_error()
+                print(f"❌ MT5 API error when getting position {position_id}: {error}")
+                return False  # API error - don't mark as closed
+            
+            if len(positions) == 0:
+                print(f"✅ Position {position_id} already closed (not found in MT5)")
+                return True  # Position genuinely doesn't exist - already closed
                 
             position = positions[0]
             

@@ -317,10 +317,40 @@ class TradingEngine:
             self.telegram_bot.send_message(f"❌ {error_msg}")
             print(f"Error: {e}")
 
+    async def reconcile_with_mt5(self):
+        """Sync bot's trade list with MT5 positions - auto-close orphaned trades"""
+        try:
+            import MetaTrader5 as mt5
+            
+            # Get all open positions from MT5
+            mt5_positions = mt5.positions_get()
+            mt5_ticket_ids = {pos.ticket for pos in mt5_positions} if mt5_positions else set()
+            
+            # Check each bot trade against MT5
+            for trade in self.open_trades[:]:  # Use slice to avoid modifying list during iteration
+                if trade.status == "closed":
+                    continue
+                    
+                if trade.trade_id and trade.trade_id not in mt5_ticket_ids:
+                    # Position doesn't exist in MT5 - was auto-closed by TP/SL
+                    current_price = self.mt5_client.get_current_price(trade.symbol)
+                    print(f"🔄 Auto-reconciliation: Position {trade.trade_id} already closed in MT5")
+                    await self.close_trade(trade, "MT5_AUTO_CLOSED", current_price)
+                    
+        except Exception as e:
+            print(f"⚠️  Reconciliation error: {e}")
+    
     async def manage_open_trades(self):
         """Monitor and manage open trades"""
         while True:
             try:
+                # MT5 Reconciliation - Check if positions still exist in MT5
+                if not self.config["simulate_orders"]:
+                    await self.reconcile_with_mt5()
+                
+                # Remove closed trades from list
+                self.open_trades = [t for t in self.open_trades if t.status != "closed"]
+                
                 for trade in self.open_trades:
                     if trade.status == "closed":
                         continue
@@ -372,12 +402,14 @@ class TradingEngine:
     async def close_trade(self, trade: Trade, reason: str, current_price: float):
         """Close a trade"""
         try:
+            # Try to close in MT5 (skip if simulating)
             if not self.config["simulate_orders"] and trade.trade_id:
                 success = self.mt5_client.close_position(trade.trade_id)
                 if not success:
-                    self.telegram_bot.send_message(f"❌ Failed to close trade {trade.trade_id}")
-                    return
+                    self.telegram_bot.send_message(f"❌ Failed to close trade {trade.trade_id} - will retry on next cycle")
+                    return  # Don't mark as closed if MT5 close failed - keep retrying!
             
+            # Only mark as closed if MT5 close succeeded or we're in simulation
             trade.status = "closed"
             trade.close_time = datetime.now().isoformat()
             self.risk_manager.remove_open_trade(trade)

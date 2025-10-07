@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from datetime import datetime, date, timedelta
 from typing import Dict, Any
+from contextlib import asynccontextmanager
 
 from config import Config
 from trading_engine import TradingEngine
@@ -16,8 +17,6 @@ from telegram_bot import TelegramBot
 from alert_processor import AlertProcessor
 from analytics_engine import AnalyticsEngine 
 from models import Alert
-
-app = FastAPI(title="Zepix Automated Trading Bot v2.0")
 
 # Initialize components
 config = Config()
@@ -32,9 +31,10 @@ trading_engine = TradingEngine(config, risk_manager, mt5_client, telegram_bot, a
 # Set dependencies
 telegram_bot.set_dependencies(risk_manager, trading_engine)
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the trading bot on startup"""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup and shutdown"""
+    # Startup
     success = await trading_engine.initialize()
     if success:
         telegram_bot.send_message("🤖 Trading Bot v2.0 Started Successfully!\n📊 1:1 RR System Active\n🔄 Re-entry System Enabled")
@@ -44,6 +44,13 @@ async def startup_event():
         telegram_bot.start_polling()
     else:
         telegram_bot.send_message("❌ Trading Bot Failed to Initialize!")
+    
+    yield
+    
+    # Shutdown (cleanup if needed)
+    print("🔄 Trading bot shutting down...")
+
+app = FastAPI(title="Zepix Automated Trading Bot v2.0", lifespan=lifespan)
 
 @app.post("/webhook")
 async def handle_webhook(request: Request):
