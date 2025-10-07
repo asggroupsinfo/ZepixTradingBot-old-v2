@@ -1,4 +1,10 @@
-import MetaTrader5 as mt5
+try:
+    import MetaTrader5 as mt5
+    MT5_AVAILABLE = True
+except ImportError:
+    MT5_AVAILABLE = False
+    print("⚠️  MetaTrader5 not available (Windows only). Running in simulation mode.")
+
 import time
 from typing import Dict, Any, Optional
 from config import Config
@@ -23,6 +29,11 @@ class MT5Client:
 
     def initialize(self) -> bool:
         """Initialize MT5 connection with retry logic"""
+        if not MT5_AVAILABLE:
+            print("⚠️  Running in simulation mode (MT5 not available on this platform)")
+            self.initialized = True
+            return True
+            
         for i in range(self.config["mt5_retries"]):
             try:
                 if not mt5.initialize():
@@ -63,6 +74,13 @@ class MT5Client:
         if not self.initialized:
             if not self.initialize():
                 return None
+        
+        # Simulation mode
+        if not MT5_AVAILABLE or self.config.get("simulate_orders", True):
+            import random
+            simulated_ticket = random.randint(100000, 999999)
+            print(f"🎭 SIMULATED ORDER: {order_type.upper()} {lot_size} lots {symbol} @ {price}, SL={sl}, TP={tp} (Ticket #{simulated_ticket})")
+            return simulated_ticket
         
         # Map symbol for broker compatibility - CRITICAL FOR XM BROKER
         mt5_symbol = self._map_symbol(symbol)
@@ -192,6 +210,15 @@ class MT5Client:
             if not self.initialize():
                 return 0.0
         
+        # Simulation mode - return dummy prices
+        if not MT5_AVAILABLE or self.config.get("simulate_orders", True):
+            dummy_prices = {
+                "XAUUSD": 2650.0, "GOLD": 2650.0,
+                "EURUSD": 1.0850, "GBPUSD": 1.2650,
+                "USDJPY": 149.50, "USDCAD": 1.3550
+            }
+            return dummy_prices.get(symbol, 1.0)
+        
         # Map symbol to broker's format
         mt5_symbol = self._map_symbol(symbol)
         
@@ -208,6 +235,10 @@ class MT5Client:
         if not self.initialized:
             if not self.initialize():
                 return 0.0
+        
+        # Simulation mode - return dummy balance
+        if not MT5_AVAILABLE or self.config.get("simulate_orders", True):
+            return 10000.0
         
         try:
             account_info = mt5.account_info()
