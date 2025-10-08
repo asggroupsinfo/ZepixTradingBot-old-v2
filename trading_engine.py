@@ -105,6 +105,12 @@ class TradingEngine:
                     if close_info['trade'] in self.open_trades:
                         self.open_trades.remove(close_info['trade'])
                         self.risk_manager.remove_closed_trade(close_info['trade'])
+                    
+                    # Stop TP continuation monitoring for this symbol (opposite signal received)
+                    self.price_monitor.stop_tp_continuation(
+                        close_info['trade'].symbol, 
+                        f"Exit due to {close_info['exit_reason']}"
+                    )
             
             # Update based on alert type
             if alert.type == 'bias':

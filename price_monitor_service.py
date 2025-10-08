@@ -413,3 +413,9 @@ class PriceMonitorService:
         
         self.monitored_symbols.add(trade.symbol)
         self.logger.info(f"📍 TP continuation monitoring registered: {trade.symbol} after TP @ {tp_price:.5f}")
+    
+    def stop_tp_continuation(self, symbol: str, reason: str = "Opposite signal received"):
+        """Stop TP continuation monitoring for a symbol"""
+        if symbol in self.tp_continuation_pending:
+            del self.tp_continuation_pending[symbol]
+            self.logger.info(f"🛑 TP continuation stopped for {symbol}: {reason}")
