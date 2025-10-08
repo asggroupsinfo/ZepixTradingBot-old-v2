@@ -7,8 +7,9 @@ echo Features Enabled:
 echo - Fixed Lot Sizes
 echo - Re-entry System
 echo - SL Hunting Protection
-echo - 1:1 Risk-Reward
+echo - 1:1.5 Risk-Reward
+echo - Progressive SL Reduction
 echo ================================
 call venv\Scripts\activate.bat
-python main.py --host 0.0.0.0 --port 8000
+python main.py --host 0.0.0.0 --port 80
 pause

@@ -220,7 +220,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Zepix Trading Bot v2.0")
     parser.add_argument("--host", default="0.0.0.0", help="Host address")
-    parser.add_argument("--port", default=8000, type=int, help="Port number")
+    parser.add_argument("--port", default=80, type=int, help="Port number (default: 80 for Windows VM)")
     args = parser.parse_args()
     
     rr_ratio = config.get("rr_ratio", 1.0)
