@@ -124,7 +124,9 @@
         "sl_hunt_reentry_enabled": true,
         "reversal_exit_enabled": true,
         "price_monitor_interval_seconds": 30,
-        "tp_continuation_price_gap_pips": 2.0
+        "tp_continuation_price_gap_pips": 2.0,
+        "sl_hunt_cooldown_seconds": 60,
+        "price_recovery_check_minutes": 2
     },
     "rr_ratio": 1.5,
     "risk_tiers": {
