@@ -47,7 +47,11 @@ class TelegramBot:
             "/lot_size_status": self.handle_lot_size_status,
             "/set_lot_size": self.handle_set_lot_size,
             "/chains": self.handle_chains_status,
-            "/signal_status": self.handle_signal_status
+            "/signal_status": self.handle_signal_status,
+            "/clear_loss_data": self.handle_clear_loss_data,
+            "/tp_system": self.handle_tp_system,
+            "/sl_hunt": self.handle_sl_hunt,
+            "/tp_report": self.handle_tp_report
         }
         self.risk_manager = None
         self.trading_engine = None
@@ -593,6 +597,128 @@ class TelegramBot:
             msg += "─────────────\n"
         
         self.send_message(msg)
+    
+    def handle_clear_loss_data(self, message):
+        """Clear lifetime loss data"""
+        if not self.risk_manager or not self.trading_engine:
+            self.send_message("❌ Bot not initialized")
+            return
+        
+        try:
+            self.risk_manager.reset_lifetime_loss()
+            self.trading_engine.db.clear_lifetime_losses()
+            self.send_message("✅ Lifetime loss data cleared successfully")
+        except Exception as e:
+            self.send_message(f"❌ Error clearing loss data: {str(e)}")
+    
+    def handle_tp_system(self, message):
+        """Control TP re-entry system: /tp_system [on/off/status]"""
+        try:
+            parts = message["text"].strip().split()
+            
+            if len(parts) < 2:
+                enabled = self.config["re_entry_config"]["tp_reentry_enabled"]
+                status_emoji = "✅" if enabled else "❌"
+                msg = (
+                    f"{status_emoji} <b>TP Re-entry System</b>\n\n"
+                    f"Status: {'ENABLED' if enabled else 'DISABLED'}\n"
+                    f"Chain Levels: {self.config['re_entry_config']['max_reentry_levels']}\n"
+                    f"SL Reduction: {self.config['re_entry_config']['sl_reduction_per_level']*100:.0f}% per level\n\n"
+                    "<b>Usage:</b>\n"
+                    "/tp_system on - Enable TP re-entry\n"
+                    "/tp_system off - Disable TP re-entry\n"
+                    "/tp_system status - Show this status"
+                )
+                self.send_message(msg)
+                return
+            
+            action = parts[1].lower()
+            
+            if action == "on":
+                self.config["re_entry_config"]["tp_reentry_enabled"] = True
+                self.send_message("✅ TP re-entry system ENABLED")
+            elif action == "off":
+                self.config["re_entry_config"]["tp_reentry_enabled"] = False
+                self.send_message("❌ TP re-entry system DISABLED")
+            elif action == "status":
+                self.handle_tp_system({"text": "/tp_system"})
+            else:
+                self.send_message("❌ Invalid action. Use: on, off, or status")
+                
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+    
+    def handle_sl_hunt(self, message):
+        """Control SL hunt re-entry system: /sl_hunt [on/off/status]"""
+        try:
+            parts = message["text"].strip().split()
+            
+            if len(parts) < 2:
+                enabled = self.config["re_entry_config"]["sl_hunt_reentry_enabled"]
+                status_emoji = "✅" if enabled else "❌"
+                msg = (
+                    f"{status_emoji} <b>SL Hunt Re-entry System</b>\n\n"
+                    f"Status: {'ENABLED' if enabled else 'DISABLED'}\n"
+                    f"Offset Pips: {self.config['re_entry_config']['sl_hunt_offset_pips']}\n"
+                    f"Cooldown: {self.config['re_entry_config']['sl_hunt_cooldown_seconds']}s\n"
+                    f"Price Check: {self.config['re_entry_config']['price_recovery_check_minutes']} min\n\n"
+                    "<b>Usage:</b>\n"
+                    "/sl_hunt on - Enable SL hunt re-entry\n"
+                    "/sl_hunt off - Disable SL hunt re-entry\n"
+                    "/sl_hunt status - Show this status"
+                )
+                self.send_message(msg)
+                return
+            
+            action = parts[1].lower()
+            
+            if action == "on":
+                self.config["re_entry_config"]["sl_hunt_reentry_enabled"] = True
+                self.send_message("✅ SL hunt re-entry system ENABLED")
+            elif action == "off":
+                self.config["re_entry_config"]["sl_hunt_reentry_enabled"] = False
+                self.send_message("❌ SL hunt re-entry system DISABLED")
+            elif action == "status":
+                self.handle_sl_hunt({"text": "/sl_hunt"})
+            else:
+                self.send_message("❌ Invalid action. Use: on, off, or status")
+                
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+    
+    def handle_tp_report(self, message):
+        """Show TP re-entry statistics and performance"""
+        if not self.trading_engine:
+            self.send_message("❌ Trading engine not initialized")
+            return
+        
+        try:
+            tp_stats = self.trading_engine.db.get_tp_reentry_stats()
+            sl_stats = self.trading_engine.db.get_sl_hunt_reentry_stats()
+            reversal_stats = self.trading_engine.reversal_handler.get_reversal_exit_stats()
+            
+            msg = "📊 <b>Advanced Re-entry Report (30 Days)</b>\n\n"
+            
+            msg += "<b>TP Re-entry System:</b>\n"
+            msg += f"Total TP Re-entries: {tp_stats.get('total_tp_reentries', 0)}\n"
+            msg += f"Profitable: {tp_stats.get('profitable_tp_reentries', 0)}\n"
+            msg += f"Total PnL: ${tp_stats.get('total_tp_reentry_pnl', 0):.2f}\n"
+            msg += f"Avg PnL: ${tp_stats.get('avg_tp_reentry_pnl', 0):.2f}\n\n"
+            
+            msg += "<b>SL Hunt Re-entry System:</b>\n"
+            msg += f"SL Hunt Attempts: {sl_stats.get('sl_hunt_attempts', 0)}\n"
+            msg += f"Successful Re-entries: {sl_stats.get('total_sl_hunt_reentries', 0)}\n\n"
+            
+            msg += "<b>Reversal Exit System:</b>\n"
+            msg += f"Total Reversal Exits: {reversal_stats.get('total_reversal_exits', 0)}\n"
+            msg += f"Profitable Exits: {reversal_stats.get('profitable_exits', 0)}\n"
+            msg += f"Total PnL: ${reversal_stats.get('total_reversal_pnl', 0):.2f}\n"
+            msg += f"Avg PnL: ${reversal_stats.get('avg_reversal_pnl', 0):.2f}"
+            
+            self.send_message(msg)
+            
+        except Exception as e:
+            self.send_message(f"❌ Error generating report: {str(e)}")
 
     def start_polling(self):
         """Start polling for Telegram commands"""
