@@ -2,6 +2,19 @@
 
 ## Recent Updates
 
+### October 08, 2025 - Exit Appeared Alert Support + TP Continuation Optimization ✅
+**NEW EARLY WARNING SYSTEM FOR TRADE PROTECTION:**
+- ✅ **Exit Appeared alerts**: Added support for 'exit' type alerts (6 new alerts: 5M/15M/1H Bull/Bear Exit Appeared)
+  - Bullish Exit Appeared closes all SELL trades before SL hits
+  - Bearish Exit Appeared closes all BUY trades before SL hits
+  - Exit reason logged: "EXIT_APPEARED_BULLISH/BEARISH"
+- ✅ **TP Continuation optimization**: Now automatically stops TP continuation monitoring when opposite signal/trend received
+  - Prevents resource waste on stale trade monitoring
+  - Clean shutdown with proper logging
+- ✅ **Architect approved**: All changes verified, zero breaking changes to existing features
+
+**Total TradingView Alerts:** 18 (4 bias + 4 trend + 6 entry + 4 reversal + 6 exit appeared)
+
 ### October 08, 2025 - Production Deployment System Complete ✅
 **ZERO-INTERACTION WINDOWS DEPLOYMENT ACHIEVED:**
 - ✅ **Automated deployment scripts**: `windows_setup.bat` (port 5000, no admin) and `windows_setup_admin.bat` (port 80, admin required) - fully unattended execution
@@ -41,8 +54,9 @@ The primary user interface is a Telegram bot, offering extensive runtime configu
 - **Runtime Configuration Control**: Over 15 Telegram commands enable live modification of bot settings (e.g., `/simulation_mode`, `/set_monitor_interval`, `/set_daily_cap`). Changes are auto-saved to `config.json` and include input validation.
 - **Advanced Re-entry System v2.0**:
     - **SL Hunt Re-entry**: Automated re-entry when price approaches SL, with alignment checks.
-    - **TP Continuation Re-entry**: Chained re-entry system after Take Profit hits, featuring progressive 50% Stop Loss reduction.
+    - **TP Continuation Re-entry**: Chained re-entry system after Take Profit hits, featuring progressive 50% Stop Loss reduction. Auto-stops when opposite signal received.
     - **Reversal Exit Handler**: Immediate profit booking upon receiving reversal or opposite signals.
+    - **Exit Appeared Early Warning**: Closes trades before SL hits when Exit Appeared alerts received (Bullish Exit = close SELL, Bearish Exit = close BUY).
     - **Background Price Monitoring**: An AsyncIO service (`PriceMonitorService`) independently monitors prices every 30 seconds.
 - **Risk Management**: Features fixed lot sizes based on balance, daily and lifetime loss limits, and symbol-specific SL configurations with volatility updates.
 - **Security & Compatibility**: Sensitive credentials are managed via environment variables. The bot supports a simulation mode for Linux environments (like Replit) and requires a Windows environment for live MT5 trading.
