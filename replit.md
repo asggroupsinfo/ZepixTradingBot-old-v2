@@ -1,278 +1,49 @@
 # Zepix Automated Trading Bot v2.0
 
 ## Overview
-This is an automated Forex and Gold trading bot that integrates with MetaTrader 5 (MT5) and receives trading signals via webhooks from TradingView. The bot includes advanced risk management, re-entry strategies, and Telegram notifications.
-
-## Current State
-- ✅ Running on Replit in simulation mode (MT5 is Windows-only, not available on Linux)
-- ✅ FastAPI server running on port 5000
-- ✅ Webhook endpoint ready to receive TradingView alerts
-- ✅ Telegram bot configured for notifications and control
-- ✅ All dependencies installed
-
-## Recent Changes (Oct 8, 2025)
-- **🚀 ADVANCED RE-ENTRY SYSTEM v2.0 - COMPLETE IMPLEMENTATION:**
-  - **NEW:** PriceMonitorService - Background AsyncIO task monitoring prices every 30 seconds
-  - **NEW:** SL Hunt Re-entry - Automatic re-entry when price reaches SL±1 point with alignment check
-  - **NEW:** TP Continuation Re-entry - Chain re-entry system after TP hits with 50% progressive SL reduction
-  - **NEW:** ReversalExitHandler - Immediate profit booking on reversal/opposite signals from TradingView
-  - **NEW:** Database tracking - tp_reentry_events, reversal_exit_events, sl_hunt monitoring
-  - **NEW:** Telegram commands - /clear_loss_data, /tp_system, /sl_hunt, /tp_report
-  - **FIXED:** RiskManager.reset_lifetime_loss() method added for loss data clearing
-  - **ENHANCED:** All Telegram handlers use safe config access (no NoneType errors)
-  - **INTEGRATION:** Price monitor hooks into trade close events for SL/TP monitoring
-  - **✅ Advanced re-entry system fully operational and tested**
-
-## Recent Changes (Oct 7, 2025)
-- **🔧 LATEST FIX - Credentials Loading (CRITICAL):**
-  - **FIXED:** Config loading bug - Environment variables now properly loaded even when config.json exists
-  - **FIXED:** Added load_dotenv() in main.py to auto-load .env file on startup
-  - **ADDED:** Debug logging to verify credentials are loaded correctly
-  - **ADDED:** test_credentials.py - Test script to verify .env file loading
-  - **ROOT CAUSE:** config.json was overwriting env vars, causing MT5 login failures on Windows
-  - **SOLUTION:** Environment variables now have highest priority, always override config.json values
-  
-- **Critical Bug Fixes for Live Trading (Deep Investigation Complete):**
-  - Fixed MT5 position close error: Now distinguishes API errors from closed positions
-  - Fixed trade tracking sync: Properly removes closed trades from memory immediately
-  - Fixed duplicate alert detection: Allows same alerts >5 min apart
-  - Fixed FastAPI deprecation: Migrated to lifespan context manager
-  - Fixed /trends endpoint: Now dynamically shows all symbols (not hardcoded)
-  - Fixed LSP type errors: Added Optional[str] type hints
-  - **CRITICAL:** Fixed PnL calculation bug: Now uses symbol-specific pip values (was causing 100x errors on JPY pairs)
-  - **CRITICAL:** Fixed re-entry system: Now continues existing chains with proper level incrementing and SL reduction
-  - **CRITICAL:** Added safety checks: 60-second cooldown + price recovery verification before re-entry
-  - Updated config: sl_reduction_per_level = 0.5 (50% SL reduction on re-entry)
-  
-- **Security & Compatibility:**
-  - Migrated sensitive credentials to environment variables
-  - Added MT5 simulation mode for Linux compatibility
-  - Updated requirements.txt for Replit (removed Windows-only MT5 package)
-  - Configured FastAPI server to run on port 5000
-  - Updated .gitignore to protect sensitive files
-  
-- **✅ All systems tested and verified - Bot 100% ready for live trading on Windows VM**
-
-## Project Architecture
-
-### Core Components
-1. **main.py** - FastAPI server entry point, handles webhooks and API endpoints
-2. **trading_engine.py** - Core trading logic orchestrator
-3. **risk_manager.py** - Risk management and loss tracking
-4. **mt5_client.py** - MetaTrader 5 integration (runs in simulation mode on Linux)
-5. **telegram_bot.py** - Telegram interface for monitoring and control
-6. **alert_processor.py** - Validates incoming TradingView alerts
-7. **database.py** - SQLite database for trade history
-8. **pip_calculator.py** - Accurate pip and stop-loss calculations
-9. **timeframe_trend_manager.py** - Manages multi-timeframe trend analysis
-10. **reentry_manager.py** - Handles re-entry trading logic
-11. **price_monitor_service.py** - Background price monitoring for advanced re-entry
-12. **reversal_exit_handler.py** - Processes reversal and opposite signal exits
-
-### Key Features
-- **Fixed Lot Sizes**: Balance-based lot sizing system
-- **Advanced Re-entry System v2.0**:
-  - **SL Hunt Re-entry**: Monitors price at SL±1 point, validates alignment, auto re-enters with reduced SL
-  - **TP Continuation Re-entry**: Chain system with 50% SL reduction per level (TP1→TP2→TP3)
-  - **Reversal Exit Handler**: Immediate profit booking on opposite/reversal signals
-- **Background Price Monitor**: Independent AsyncIO service checking prices every 30 seconds
-- **SL Hunting Protection**: Guards against premature stop-loss triggers
-- **1:1.5 Risk-Reward**: Enhanced risk-reward ratio for re-entry chains
-- **Progressive SL Reduction**: 50% stop-loss reduction on each re-entry level
-- **Multi-timeframe Trend Analysis**: Validates trades across multiple timeframes
-
-## Environment Variables Required
-
-To run this bot in production, you need to configure these environment variables:
-
-```bash
-# Telegram Bot Configuration
-TELEGRAM_TOKEN=your_telegram_bot_token_here
-TELEGRAM_CHAT_ID=your_telegram_chat_id_here
-
-# MetaTrader 5 Configuration (Windows only)
-MT5_LOGIN=your_mt5_login_here
-MT5_PASSWORD=your_mt5_password_here
-MT5_SERVER=your_mt5_server_name_here
-```
-
-See `.env.example` for a template.
-
-## API Endpoints
-
-### Health Check
-- `GET /health` - Returns bot status and configuration
-
-### Statistics
-- `GET /stats` - Returns trading statistics and current settings
-
-### Trading Controls
-- `POST /pause` - Pause trading
-- `POST /resume` - Resume trading
-
-### Webhook
-- `POST /webhook` - Receives TradingView alerts (main entry point for signals)
-
-### Trend Management
-- `GET /trends` - Get all trends for all symbols
-- `POST /set_trend` - Manually set trend for a symbol/timeframe
-
-### Re-entry Chains
-- `GET /chains` - View active re-entry chains
-
-### Lot Configuration
-- `GET /lot_config` - View lot size configuration
-- `POST /set_lot_size` - Set manual lot size override
-
-## Configuration Files
-
-### config.json
-Main configuration file containing:
-- Symbol mappings (e.g., XAUUSD → GOLD for XM broker)
-- Fixed lot sizes by balance tier
-- Risk tiers and daily/lifetime loss limits
-- Symbol-specific settings (volatility, pip values)
-- **Re-entry configuration**:
-  - `tp_reentry_enabled` - Enable/disable TP continuation re-entry
-  - `sl_hunt_reentry_enabled` - Enable/disable SL hunt re-entry
-  - `sl_hunt_offset_pips` - Offset pips for SL hunt trigger (default: 1)
-  - `sl_hunt_cooldown_seconds` - Cooldown between SL hunts (default: 60)
-  - `price_recovery_check_minutes` - Price recovery validation window (default: 2)
-  - `price_monitor_interval_seconds` - Background monitor frequency (default: 30)
-  - `max_reentry_levels` - Maximum re-entry chain levels (default: 3)
-  - `sl_reduction_per_level` - SL reduction percentage (default: 0.5 = 50%)
-  - `reversal_exit_enabled` - Enable/disable reversal exit handler
-- Strategy settings (Logic1, Logic2, Logic3)
-
-### Symbol Mapping
-The bot supports broker-specific symbol mapping:
-- TradingView symbol (XAUUSD) → Broker symbol (GOLD for XM)
-- Configured in `config.json` under `symbol_mapping`
-
-## Telegram Commands
-
-### Basic Commands
-- `/start` - Start the bot and view command menu
-- `/status` - Check bot status and open trades
-- `/pause` - Pause trading
-- `/resume` - Resume trading
-- `/performance` - View performance metrics
-- `/stats` - View detailed statistics
-- `/trades` - View open trades
-
-### Logic Control
-- `/logic1_on/off` - Toggle Logic 1 strategy (1H+15M→5M)
-- `/logic2_on/off` - Toggle Logic 2 strategy (1H+15M→15M)
-- `/logic3_on/off` - Toggle Logic 3 strategy (D+1H→1H)
-- `/logic_status` - View current logic status
-
-### Advanced Re-entry System Commands (NEW)
-- `/tp_system [on/off/status]` - Control TP continuation re-entry system
-- `/sl_hunt [on/off/status]` - Control SL hunt re-entry system
-- `/tp_report` - View advanced re-entry statistics (30 days)
-- `/clear_loss_data` - Reset lifetime loss counter
-
-### Trend Management
-- `/set_trend SYMBOL TF TREND` - Set manual trend
-- `/set_auto SYMBOL TF` - Enable auto trend updates
-- `/show_trends` - Show all trends
-- `/trend_matrix` - Complete trend matrix
-- `/trend_mode SYMBOL TF` - Check current mode
-
-### Other Commands
-- `/chains` - View active re-entry chains
-- `/lot_size_status` - View lot size settings
-- `/set_lot_size TIER LOT` - Override lot size
-- `/signal_status` - View current signal status
+Zepix is an automated Forex and Gold trading bot designed for integration with MetaTrader 5 (MT5) and TradingView. Its primary purpose is to execute trades based on webhook signals from TradingView, incorporating advanced risk management, sophisticated re-entry strategies, and real-time Telegram notifications. The project aims to provide a robust, automated trading solution with high customizability and control, enabling users to manage trading operations efficiently and respond to market dynamics.
 
 ## User Preferences
 - **Development Mode**: Currently running in simulation mode on Replit
 - **Production Deployment**: Requires Windows environment with MT5 installed
 - **Webhook Integration**: Designed to receive signals from TradingView/Zepix
 
-## Running the Bot
+## System Architecture
 
-### On Replit (Current Setup)
-The bot is configured to run automatically. It will:
-1. Start in simulation mode (MT5 not available on Linux)
-2. Listen for webhooks on port 5000
-3. Accept TradingView alerts and simulate trades
-4. Send notifications via Telegram
+### Core Components
+The bot is built around a modular architecture comprising several key components:
+- **FastAPI Server (`main.py`)**: Entry point for webhooks and API endpoints.
+- **Trading Orchestration (`trading_engine.py`)**: Manages core trading logic.
+- **Risk Management (`risk_manager.py`)**: Handles risk assessment and loss tracking.
+- **MT5 Integration (`mt5_client.py`)**: Interface for MetaTrader 5, supporting simulation on Linux and live trading on Windows.
+- **Telegram Bot (`telegram_bot.py`)**: Provides a control and notification interface.
+- **Alert Processing (`alert_processor.py`)**: Validates incoming TradingView alerts.
+- **Database (`database.py`)**: SQLite for persisting trade history and system state.
+- **Re-entry System (`reentry_manager.py`, `price_monitor_service.py`, `reversal_exit_handler.py`)**: Implements advanced re-entry strategies including SL Hunt and TP Continuation, alongside reversal exits, with a background price monitor.
+- **Trend Analysis (`timeframe_trend_manager.py`)**: Supports multi-timeframe trend validation.
 
-### On Windows (Production - Live Trading)
-For live trading with real MT5, follow these steps:
+### UI/UX Decisions
+The primary user interface is a Telegram bot, offering extensive runtime configuration control via over 15 commands. This allows for dynamic adjustment of trading parameters, re-entry settings, risk caps, and more, without requiring a bot restart. The Telegram interface is designed for clarity with organized categories and emoji headers.
 
-**Step 1: Environment Setup**
-1. Install MetaTrader 5 on Windows
-2. Create `.env` file with your credentials (use `.env.example` as template):
-   ```
-   TELEGRAM_TOKEN=your_actual_telegram_token
-   TELEGRAM_CHAT_ID=your_actual_chat_id
-   MT5_LOGIN=your_mt5_login
-   MT5_PASSWORD=your_mt5_password
-   MT5_SERVER=your_mt5_server
-   ```
+### Technical Implementations
+- **Runtime Configuration Control**: Over 15 Telegram commands enable live modification of bot settings (e.g., `/simulation_mode`, `/set_monitor_interval`, `/set_daily_cap`). Changes are auto-saved to `config.json` and include input validation.
+- **Advanced Re-entry System v2.0**:
+    - **SL Hunt Re-entry**: Automated re-entry when price approaches SL, with alignment checks.
+    - **TP Continuation Re-entry**: Chained re-entry system after Take Profit hits, featuring progressive 50% Stop Loss reduction.
+    - **Reversal Exit Handler**: Immediate profit booking upon receiving reversal or opposite signals.
+    - **Background Price Monitoring**: An AsyncIO service (`PriceMonitorService`) independently monitors prices every 30 seconds.
+- **Risk Management**: Features fixed lot sizes based on balance, daily and lifetime loss limits, and symbol-specific SL configurations with volatility updates.
+- **Security & Compatibility**: Sensitive credentials are managed via environment variables. The bot supports a simulation mode for Linux environments (like Replit) and requires a Windows environment for live MT5 trading.
+- **PnL Calculation**: Correctly uses symbol-specific pip values to prevent calculation errors.
 
-**Step 2: Enable Live Trading Mode**
-Option A: Use production config file:
-- Copy `config_prod.json` contents and save as `config.json`
-- This sets `simulate_orders: false` for live trading
+### Feature Specifications
+- **Trading Strategies**: Supports multiple distinct trading logics (Logic1, Logic2, Logic3) that can be individually toggled.
+- **Symbol Mapping**: Configurable symbol mapping to support broker-specific symbol conventions (e.g., XAUUSD to GOLD).
+- **Database**: Uses SQLite for comprehensive trade history, re-entry chain management, performance reporting, and system state persistence.
 
-Option B: Manually edit config.json:
-- Open `config.json`
-- Change `"simulate_orders": true` to `"simulate_orders": false`
+## External Dependencies
 
-**Step 3: Launch Bot**
-```bash
-python main.py --host 0.0.0.0 --port 8000
-```
-
-**Step 4: Verify Startup**
-- Bot will validate MT5 connection on startup
-- If MT5 fails in live mode → Bot aborts with clear error message
-- If successful → Telegram notification shows "Mode: LIVE TRADING"
-- ⚠️ Never run live mode without MT5 connection verified!
-
-**Production Safety:**
-- ✅ Bot aborts startup if live mode enabled but MT5 unavailable
-- ✅ All credentials loaded from environment variables (never hardcoded)
-- ✅ Mode clearly displayed in startup message (SIMULATION vs LIVE TRADING)
-
-## Security Notes
-- All sensitive credentials are stored as environment variables
-- config.json and config_prod.json do not contain hardcoded secrets
-- Database files are excluded from version control
-- .env files are gitignored
-
-## Database
-
-### Database Schema
-Uses SQLite (`trading_bot.db`) with the following tables:
-- **trades** - Complete trade history with PnL tracking
-- **chains** - Active and completed re-entry chains
-- **sl_events** - Stop-loss hit events and recovery attempts
-- **tp_reentry_events** - TP continuation re-entry tracking
-- **reversal_exit_events** - Reversal and opposite signal exits
-- **system_settings** - Bot configuration and state persistence
-
-### Database Functions
-- Trade history and analytics
-- Re-entry chain management
-- Performance reporting
-- Risk management tracking
-
-## Troubleshooting
-
-### MT5 Connection Issues
-- MT5 is Windows-only, simulation mode is used on Linux/Replit
-- For real trading, must run on Windows with MT5 installed
-
-### Telegram Not Working
-- Verify TELEGRAM_TOKEN and TELEGRAM_CHAT_ID are set correctly
-- Check that the bot token is valid and active
-- Ensure chat ID matches your Telegram user ID
-
-### Webhook Not Receiving Alerts
-- Verify TradingView webhook URL points to: `https://your-replit-url.repl.co/webhook`
-- Check alert format matches expected schema
-- Review logs for validation errors
+- **MetaTrader 5 (MT5)**: The primary trading platform integration. Used for executing trades and retrieving market data.
+- **TradingView Webhooks**: Receives trading signals and alerts from TradingView.
+- **Telegram Bot API**: Used for sending notifications, performance reports, and receiving control commands from users.
+- **SQLite**: Utilized as the database for storing trade history, re-entry chains, system settings, and other operational data.
