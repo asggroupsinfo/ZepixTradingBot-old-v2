@@ -616,14 +616,16 @@ class TelegramBot:
         try:
             parts = message["text"].strip().split()
             
+            re_entry_config = self.config.get("re_entry_config", {})
+            
             if len(parts) < 2:
-                enabled = self.config["re_entry_config"]["tp_reentry_enabled"]
+                enabled = re_entry_config.get("tp_reentry_enabled", False)
                 status_emoji = "✅" if enabled else "❌"
                 msg = (
                     f"{status_emoji} <b>TP Re-entry System</b>\n\n"
                     f"Status: {'ENABLED' if enabled else 'DISABLED'}\n"
-                    f"Chain Levels: {self.config['re_entry_config']['max_reentry_levels']}\n"
-                    f"SL Reduction: {self.config['re_entry_config']['sl_reduction_per_level']*100:.0f}% per level\n\n"
+                    f"Chain Levels: {re_entry_config.get('max_reentry_levels', 3)}\n"
+                    f"SL Reduction: {re_entry_config.get('sl_reduction_per_level', 0.5)*100:.0f}% per level\n\n"
                     "<b>Usage:</b>\n"
                     "/tp_system on - Enable TP re-entry\n"
                     "/tp_system off - Disable TP re-entry\n"
@@ -635,10 +637,12 @@ class TelegramBot:
             action = parts[1].lower()
             
             if action == "on":
-                self.config["re_entry_config"]["tp_reentry_enabled"] = True
+                if "re_entry_config" in self.config.config:
+                    self.config.config["re_entry_config"]["tp_reentry_enabled"] = True
                 self.send_message("✅ TP re-entry system ENABLED")
             elif action == "off":
-                self.config["re_entry_config"]["tp_reentry_enabled"] = False
+                if "re_entry_config" in self.config.config:
+                    self.config.config["re_entry_config"]["tp_reentry_enabled"] = False
                 self.send_message("❌ TP re-entry system DISABLED")
             elif action == "status":
                 self.handle_tp_system({"text": "/tp_system"})
@@ -653,15 +657,17 @@ class TelegramBot:
         try:
             parts = message["text"].strip().split()
             
+            re_entry_config = self.config.get("re_entry_config", {})
+            
             if len(parts) < 2:
-                enabled = self.config["re_entry_config"]["sl_hunt_reentry_enabled"]
+                enabled = re_entry_config.get("sl_hunt_reentry_enabled", False)
                 status_emoji = "✅" if enabled else "❌"
                 msg = (
                     f"{status_emoji} <b>SL Hunt Re-entry System</b>\n\n"
                     f"Status: {'ENABLED' if enabled else 'DISABLED'}\n"
-                    f"Offset Pips: {self.config['re_entry_config']['sl_hunt_offset_pips']}\n"
-                    f"Cooldown: {self.config['re_entry_config']['sl_hunt_cooldown_seconds']}s\n"
-                    f"Price Check: {self.config['re_entry_config']['price_recovery_check_minutes']} min\n\n"
+                    f"Offset Pips: {re_entry_config.get('sl_hunt_offset_pips', 1)}\n"
+                    f"Cooldown: {re_entry_config.get('sl_hunt_cooldown_seconds', 60)}s\n"
+                    f"Price Check: {re_entry_config.get('price_recovery_check_minutes', 2)} min\n\n"
                     "<b>Usage:</b>\n"
                     "/sl_hunt on - Enable SL hunt re-entry\n"
                     "/sl_hunt off - Disable SL hunt re-entry\n"
@@ -673,10 +679,12 @@ class TelegramBot:
             action = parts[1].lower()
             
             if action == "on":
-                self.config["re_entry_config"]["sl_hunt_reentry_enabled"] = True
+                if "re_entry_config" in self.config.config:
+                    self.config.config["re_entry_config"]["sl_hunt_reentry_enabled"] = True
                 self.send_message("✅ SL hunt re-entry system ENABLED")
             elif action == "off":
-                self.config["re_entry_config"]["sl_hunt_reentry_enabled"] = False
+                if "re_entry_config" in self.config.config:
+                    self.config.config["re_entry_config"]["sl_hunt_reentry_enabled"] = False
                 self.send_message("❌ SL hunt re-entry system DISABLED")
             elif action == "status":
                 self.handle_sl_hunt({"text": "/sl_hunt"})

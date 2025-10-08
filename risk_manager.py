@@ -50,6 +50,11 @@ class RiskManager:
         self.winning_trades = 0
         self.save_stats()
     
+    def reset_lifetime_loss(self):
+        """Reset lifetime loss counter"""
+        self.lifetime_loss = 0.0
+        self.save_stats()
+    
     def save_stats(self):
         """Save statistics to file"""
         stats = {
