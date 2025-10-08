@@ -10,6 +10,19 @@ This is an automated Forex and Gold trading bot that integrates with MetaTrader 
 - ✅ Telegram bot configured for notifications and control
 - ✅ All dependencies installed
 
+## Recent Changes (Oct 8, 2025)
+- **🚀 ADVANCED RE-ENTRY SYSTEM v2.0 - COMPLETE IMPLEMENTATION:**
+  - **NEW:** PriceMonitorService - Background AsyncIO task monitoring prices every 30 seconds
+  - **NEW:** SL Hunt Re-entry - Automatic re-entry when price reaches SL±1 point with alignment check
+  - **NEW:** TP Continuation Re-entry - Chain re-entry system after TP hits with 50% progressive SL reduction
+  - **NEW:** ReversalExitHandler - Immediate profit booking on reversal/opposite signals from TradingView
+  - **NEW:** Database tracking - tp_reentry_events, reversal_exit_events, sl_hunt monitoring
+  - **NEW:** Telegram commands - /clear_loss_data, /tp_system, /sl_hunt, /tp_report
+  - **FIXED:** RiskManager.reset_lifetime_loss() method added for loss data clearing
+  - **ENHANCED:** All Telegram handlers use safe config access (no NoneType errors)
+  - **INTEGRATION:** Price monitor hooks into trade close events for SL/TP monitoring
+  - **✅ Advanced re-entry system fully operational and tested**
+
 ## Recent Changes (Oct 7, 2025)
 - **🔧 LATEST FIX - Credentials Loading (CRITICAL):**
   - **FIXED:** Config loading bug - Environment variables now properly loaded even when config.json exists
@@ -53,13 +66,19 @@ This is an automated Forex and Gold trading bot that integrates with MetaTrader 
 8. **pip_calculator.py** - Accurate pip and stop-loss calculations
 9. **timeframe_trend_manager.py** - Manages multi-timeframe trend analysis
 10. **reentry_manager.py** - Handles re-entry trading logic
+11. **price_monitor_service.py** - Background price monitoring for advanced re-entry
+12. **reversal_exit_handler.py** - Processes reversal and opposite signal exits
 
 ### Key Features
 - **Fixed Lot Sizes**: Balance-based lot sizing system
-- **Re-entry System**: Automatic re-entry on stop-loss with reduced risk
+- **Advanced Re-entry System v2.0**:
+  - **SL Hunt Re-entry**: Monitors price at SL±1 point, validates alignment, auto re-enters with reduced SL
+  - **TP Continuation Re-entry**: Chain system with 50% SL reduction per level (TP1→TP2→TP3)
+  - **Reversal Exit Handler**: Immediate profit booking on opposite/reversal signals
+- **Background Price Monitor**: Independent AsyncIO service checking prices every 30 seconds
 - **SL Hunting Protection**: Guards against premature stop-loss triggers
-- **1:1 Risk-Reward**: Balanced risk-reward ratio
-- **Progressive SL Reduction**: Reduces stop-loss on each re-entry level
+- **1:1.5 Risk-Reward**: Enhanced risk-reward ratio for re-entry chains
+- **Progressive SL Reduction**: 50% stop-loss reduction on each re-entry level
 - **Multi-timeframe Trend Analysis**: Validates trades across multiple timeframes
 
 ## Environment Variables Required
@@ -113,8 +132,17 @@ Main configuration file containing:
 - Fixed lot sizes by balance tier
 - Risk tiers and daily/lifetime loss limits
 - Symbol-specific settings (volatility, pip values)
-- Re-entry configuration
-- Strategy settings
+- **Re-entry configuration**:
+  - `tp_reentry_enabled` - Enable/disable TP continuation re-entry
+  - `sl_hunt_reentry_enabled` - Enable/disable SL hunt re-entry
+  - `sl_hunt_offset_pips` - Offset pips for SL hunt trigger (default: 1)
+  - `sl_hunt_cooldown_seconds` - Cooldown between SL hunts (default: 60)
+  - `price_recovery_check_minutes` - Price recovery validation window (default: 2)
+  - `price_monitor_interval_seconds` - Background monitor frequency (default: 30)
+  - `max_reentry_levels` - Maximum re-entry chain levels (default: 3)
+  - `sl_reduction_per_level` - SL reduction percentage (default: 0.5 = 50%)
+  - `reversal_exit_enabled` - Enable/disable reversal exit handler
+- Strategy settings (Logic1, Logic2, Logic3)
 
 ### Symbol Mapping
 The bot supports broker-specific symbol mapping:
@@ -123,21 +151,39 @@ The bot supports broker-specific symbol mapping:
 
 ## Telegram Commands
 
-The bot supports these Telegram commands:
-- `/start` - Start the bot
-- `/status` - Check bot status
+### Basic Commands
+- `/start` - Start the bot and view command menu
+- `/status` - Check bot status and open trades
 - `/pause` - Pause trading
 - `/resume` - Resume trading
 - `/performance` - View performance metrics
 - `/stats` - View detailed statistics
 - `/trades` - View open trades
-- `/logic1_on/off` - Toggle Logic 1 strategy
-- `/logic2_on/off` - Toggle Logic 2 strategy
-- `/logic3_on/off` - Toggle Logic 3 strategy
-- `/set_trend` - Set manual trend
+
+### Logic Control
+- `/logic1_on/off` - Toggle Logic 1 strategy (1H+15M→5M)
+- `/logic2_on/off` - Toggle Logic 2 strategy (1H+15M→15M)
+- `/logic3_on/off` - Toggle Logic 3 strategy (D+1H→1H)
+- `/logic_status` - View current logic status
+
+### Advanced Re-entry System Commands (NEW)
+- `/tp_system [on/off/status]` - Control TP continuation re-entry system
+- `/sl_hunt [on/off/status]` - Control SL hunt re-entry system
+- `/tp_report` - View advanced re-entry statistics (30 days)
+- `/clear_loss_data` - Reset lifetime loss counter
+
+### Trend Management
+- `/set_trend SYMBOL TF TREND` - Set manual trend
+- `/set_auto SYMBOL TF` - Enable auto trend updates
 - `/show_trends` - Show all trends
-- `/chains` - View re-entry chains
+- `/trend_matrix` - Complete trend matrix
+- `/trend_mode SYMBOL TF` - Check current mode
+
+### Other Commands
+- `/chains` - View active re-entry chains
 - `/lot_size_status` - View lot size settings
+- `/set_lot_size TIER LOT` - Override lot size
+- `/signal_status` - View current signal status
 
 ## User Preferences
 - **Development Mode**: Currently running in simulation mode on Replit
@@ -199,9 +245,21 @@ python main.py --host 0.0.0.0 --port 8000
 - .env files are gitignored
 
 ## Database
-- Uses SQLite (`trading_bot.db`)
-- Stores trade history, re-entry chains, and SL events
-- Used for performance analytics and reporting
+
+### Database Schema
+Uses SQLite (`trading_bot.db`) with the following tables:
+- **trades** - Complete trade history with PnL tracking
+- **chains** - Active and completed re-entry chains
+- **sl_events** - Stop-loss hit events and recovery attempts
+- **tp_reentry_events** - TP continuation re-entry tracking
+- **reversal_exit_events** - Reversal and opposite signal exits
+- **system_settings** - Bot configuration and state persistence
+
+### Database Functions
+- Trade history and analytics
+- Re-entry chain management
+- Performance reporting
+- Risk management tracking
 
 ## Troubleshooting
 
