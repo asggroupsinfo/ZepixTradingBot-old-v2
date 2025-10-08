@@ -4,7 +4,7 @@ from datetime import datetime
 import json
 
 class Alert(BaseModel):
-    type: str  # "bias", "trend", "entry", or "reversal"
+    type: str  # "bias", "trend", "entry", "reversal", or "exit"
     symbol: str
     signal: str  # "buy", "sell", "bull", "bear", "reversal_bull", "reversal_bear"
     tf: str  # "1h", "15m", "5m", "1d"
@@ -14,8 +14,8 @@ class Alert(BaseModel):
     
     @validator('type')
     def validate_type(cls, v):
-        if v not in ['bias', 'trend', 'entry', 'reversal']:
-            raise ValueError('Type must be bias, trend, entry, or reversal')
+        if v not in ['bias', 'trend', 'entry', 'reversal', 'exit']:
+            raise ValueError('Type must be bias, trend, entry, reversal, or exit')
         return v
     
     @validator('tf')

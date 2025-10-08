@@ -48,6 +48,14 @@ class AlertProcessor:
                 if alert.signal not in ['buy', 'sell']:
                     print(f"❌ Invalid signal for {alert.type}: {alert.signal}")
                     return False
+            elif alert.type == 'reversal':
+                if alert.signal not in ['reversal_bull', 'reversal_bear', 'bull', 'bear']:
+                    print(f"❌ Invalid signal for {alert.type}: {alert.signal}")
+                    return False
+            elif alert.type == 'exit':
+                if alert.signal not in ['bull', 'bear']:
+                    print(f"❌ Invalid signal for {alert.type}: {alert.signal}")
+                    return False
                     
             # Store alert
             self.recent_alerts.append(alert)
