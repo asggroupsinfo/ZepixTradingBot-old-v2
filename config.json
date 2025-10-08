@@ -145,7 +145,7 @@
     },
     "mt5_retries": 3,
     "mt5_wait": 5,
-    "simulate_orders": true,
+    "simulate_orders": false,
     "debug": true,
     "strategies": [
         "LOGIC1",
