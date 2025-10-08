@@ -1,0 +1,81 @@
+===============================================================================
+ZEPIX TRADING BOT - AUTOMATED WINDOWS DEPLOYMENT
+===============================================================================
+
+FUTURE DEPLOYMENT (2 COMMANDS ONLY):
+-------------------------------------
+Option 1 - Normal Mode (Port 5000):
+  1. git pull
+  2. .\windows_setup.bat
+
+Option 2 - Admin Mode (Port 80):
+  1. git pull
+  2. Right-click windows_setup_admin.bat → "Run as Administrator"
+
+That's it! Bot will be ready in 1-2 minutes with MT5 connected.
+
+===============================================================================
+
+FIRST-TIME SETUP:
+-----------------
+1. Make sure you have:
+   - Python 3.10 64-bit installed
+   - MetaTrader 5 installed (from your broker - XM Global, Exness, etc.)
+   - MT5 logged in at least once
+
+2. Clone repository:
+   git clone https://github.com/asggroupsinfo/ZepixTradingBot-old-v2.git
+   cd ZepixTradingBot-old-v2
+
+3. Create .env file with your credentials:
+   TELEGRAM_TOKEN=your_telegram_bot_token
+   TELEGRAM_CHAT_ID=your_telegram_chat_id
+   MT5_LOGIN=your_mt5_login
+   MT5_PASSWORD=your_mt5_password
+   MT5_SERVER=your_mt5_server
+
+4. Run automated setup:
+   .\windows_setup.bat
+
+5. Bot will start automatically on port 80!
+
+===============================================================================
+
+WHAT THE AUTOMATED SCRIPT DOES:
+--------------------------------
+✓ Checks Python 64-bit installation
+✓ Creates fresh virtual environment
+✓ Installs exact working dependency versions (no more conflicts!)
+✓ Auto-detects MT5 installation (XM Global MT5, standard MetaTrader 5, etc.)
+✓ Creates symlink automatically (if needed)
+✓ Verifies MT5 connection
+✓ Checks .env configuration
+✓ Starts bot on port 80
+
+===============================================================================
+
+TROUBLESHOOTING (Rare Issues):
+-------------------------------
+Issue: "Python not found"
+Fix: Install Python 3.10 64-bit from python.org, check "Add to PATH"
+
+Issue: "32-bit Python detected"
+Fix: Uninstall 32-bit Python, install 64-bit version
+
+Issue: "MT5 not found"
+Fix: Install MetaTrader 5 from your broker's website
+
+Issue: ".env file not found"
+Fix: Create .env with your credentials (see template above)
+
+Issue: "MT5 connection failed"
+Fix: Open MT5 terminal, login once manually, then re-run script
+
+===============================================================================
+
+MANUAL MT5 SETUP (Only if automated fails):
+--------------------------------------------
+1. Run: python setup_mt5_connection.py
+2. Follow on-screen instructions
+
+===============================================================================

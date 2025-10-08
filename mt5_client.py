@@ -62,6 +62,13 @@ class MT5Client:
                 time.sleep(self.config["mt5_wait"])
         
         print("❌ Failed to connect to MT5 after retries")
+        
+        # Check if simulation mode is enabled/should be enabled
+        if self.config.get("simulate_orders", False):
+            print("⚠️  MT5 connection failed but simulation mode enabled - continuing")
+            self.initialized = True  # Safe to set for simulation
+            return True
+        
         return False
 
     def place_order(self, symbol: str, order_type: str, lot_size: float, 

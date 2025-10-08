@@ -42,17 +42,13 @@ def create_symlink(source, target):
             print(f"⚠️  Directory exists but is not a symlink: {target}")
             return False
     
+    if not is_admin():
+        print("❌ ERROR: Administrator privileges required to create symlink")
+        print("   Please run the deployment script as Administrator")
+        print("   OR use: windows_setup_admin.bat")
+        return False
+    
     try:
-        if not is_admin():
-            print("⚠️  Need administrator privileges to create symlink...")
-            print("🔄 Requesting admin access...")
-            
-            script_path = os.path.abspath(__file__)
-            ctypes.windll.shell32.ShellExecuteW(
-                None, "runas", sys.executable, f'"{script_path}"', None, 1
-            )
-            sys.exit(0)
-        
         os.symlink(source, target, target_is_directory=True)
         print(f"✅ Symlink created: {target} -> {source}")
         return True
@@ -93,7 +89,6 @@ def main():
     
     if not mt5_path:
         print("\n❌ Setup failed: MT5 installation not found")
-        input("\nPress Enter to exit...")
         return False
     
     standard_path = r"C:\Program Files\MetaTrader 5"
@@ -102,7 +97,6 @@ def main():
         print(f"\n🔗 Creating symlink for Python MT5 package compatibility...")
         if not create_symlink(mt5_path, standard_path):
             print("\n❌ Setup failed: Could not create symlink")
-            input("\nPress Enter to exit...")
             return False
     
     print("\n🔍 Verifying MT5 connection...")
@@ -116,5 +110,4 @@ def main():
 
 if __name__ == "__main__":
     success = main()
-    input("\nPress Enter to exit...")
     sys.exit(0 if success else 1)

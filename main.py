@@ -41,30 +41,36 @@ async def lifespan(app: FastAPI):
     # Startup
     success = await trading_engine.initialize()
     
-    # Critical: If live trading mode is enabled, abort if MT5 fails to connect
-    if not config.get('simulate_orders', False) and not success:
-        error_msg = "❌ CRITICAL: Live trading mode enabled but MT5 connection failed!\n" \
-                   "✋ Bot startup aborted to prevent trading errors.\n" \
-                   "🔧 Please verify:\n" \
-                   "  1. MetaTrader 5 is installed and running\n" \
-                   "  2. MT5 credentials are correct in environment variables\n" \
-                   "  3. MT5 server is accessible"
-        telegram_bot.send_message(error_msg)
-        print(error_msg)
-        raise RuntimeError("MT5 connection required for live trading mode")
-    
     if success:
+        # MT5 initialization successful (connected OR simulation mode active)
         mode = "SIMULATION" if config.get('simulate_orders', False) else "LIVE TRADING"
         telegram_bot.send_message(f"🤖 Trading Bot v2.0 Started Successfully!\n"
                                  f"🔧 Mode: {mode}\n"
-                                 f"📊 1:1 RR System Active\n"
+                                 f"📊 1:1.5 RR System Active\n"
                                  f"🔄 Re-entry System Enabled")
-        # Start trade management task
+        # Start background tasks
         asyncio.create_task(trading_engine.manage_open_trades())
-        # Start Telegram polling
         telegram_bot.start_polling()
     else:
-        telegram_bot.send_message("⚠️ Trading Bot Started in Simulation Mode (MT5 not available)")
+        # MT5 connection failed AND simulation not enabled - enable it now
+        print("⚠️  MT5 connection failed - auto-enabling SIMULATION MODE")
+        config.config_data['simulate_orders'] = True
+        config.save_config()
+        
+        # Retry initialization with simulation mode enabled
+        success_retry = await trading_engine.initialize()
+        if success_retry:
+            telegram_bot.send_message(f"🤖 Trading Bot v2.0 Started in SIMULATION MODE\n"
+                                     f"⚠️  MT5 unavailable - simulating all trades\n"
+                                     f"📊 To enable live trading: run windows_setup_admin.bat\n"
+                                     f"🔄 Re-entry System Active")
+            asyncio.create_task(trading_engine.manage_open_trades())
+            telegram_bot.start_polling()
+        else:
+            error_msg = "❌ CRITICAL: Bot initialization failed even in simulation mode"
+            telegram_bot.send_message(error_msg)
+            print(error_msg)
+            raise RuntimeError("Bot initialization failed")
     
     yield
     

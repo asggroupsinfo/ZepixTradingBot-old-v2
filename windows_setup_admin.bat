@@ -1,10 +1,21 @@
 @echo off
 echo ============================================================
-echo ZEPIX TRADING BOT - AUTOMATED WINDOWS DEPLOYMENT
+echo ZEPIX TRADING BOT - ADMIN MODE DEPLOYMENT (PORT 80)
 echo ============================================================
 echo.
 
+REM Check for admin rights
+net session >nul 2>&1
+if %errorLevel% neq 0 (
+    echo ❌ ERROR: Administrator privileges required
+    echo    Right-click windows_setup_admin.bat and select "Run as Administrator"
+    timeout /t 5 /nobreak >nul
+    exit /b 1
+)
+echo ✓ Running as Administrator
+
 REM Check Python 64-bit
+echo.
 echo [1/7] Checking Python installation...
 python --version >nul 2>&1
 if errorlevel 1 (
@@ -75,11 +86,12 @@ echo.
 echo [7/7] Setting up MT5 connection...
 python setup_mt5_connection.py
 if errorlevel 1 (
-    echo ⚠️  MT5 auto-setup failed - Bot will run in SIMULATION MODE
-    echo    To enable live trading: run windows_setup_admin.bat as Administrator
+    echo ❌ MT5 auto-setup failed even with admin rights
+    echo    Please check if MT5 is installed
+    echo    Bot will attempt to run in SIMULATION MODE
     set MT5_MODE=simulation
 ) else (
-    echo ✓ MT5 connection verified
+    echo ✓ MT5 connection verified with admin rights
     set MT5_MODE=live
 )
 
@@ -103,19 +115,19 @@ echo ✓ .env file found
 
 echo.
 echo ============================================================
-echo ✅ DEPLOYMENT COMPLETE!
+echo ✅ ADMIN DEPLOYMENT COMPLETE!
 echo ============================================================
 if "%MT5_MODE%"=="simulation" (
     echo.
     echo ⚠️  MODE: SIMULATION ^(MT5 not connected^)
     echo    Bot will simulate trades without real execution
-    echo    For live trading: Close bot and run windows_setup_admin.bat
+    echo    Please check if MT5 is installed and configured
 ) else (
     echo.
     echo ✅ MODE: LIVE TRADING ^(MT5 connected^)
 )
 echo.
-echo Starting Zepix Trading Bot on port 5000...
+echo Starting Zepix Trading Bot on PORT 80 (Admin Mode)...
 echo Press Ctrl+C to stop the bot
 echo.
-python main.py --host 0.0.0.0 --port 5000
+python main.py --host 0.0.0.0 --port 80
