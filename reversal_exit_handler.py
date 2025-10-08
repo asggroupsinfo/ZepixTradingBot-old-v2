@@ -65,6 +65,15 @@ class ReversalExitHandler:
                     should_exit = True
                     exit_reason = f"TREND_REVERSAL_{trend_direction}"
             
+            # Case 4: Exit Appeared alert (Early warning before reversal)
+            elif alert.type == 'exit':
+                if alert.signal == 'bull' and trade.direction == 'sell':
+                    should_exit = True
+                    exit_reason = "EXIT_APPEARED_BULLISH"
+                elif alert.signal == 'bear' and trade.direction == 'buy':
+                    should_exit = True
+                    exit_reason = "EXIT_APPEARED_BEARISH"
+            
             if should_exit:
                 trades_to_close.append({
                     'trade': trade,

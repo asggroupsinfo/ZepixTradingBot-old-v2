@@ -90,7 +90,7 @@ class TradingEngine:
             self.initialize_symbol_signals(symbol)
             
             # NEW: Check for reversal exit FIRST before processing other alerts
-            if alert.type in ['reversal', 'trend', 'entry']:
+            if alert.type in ['reversal', 'trend', 'entry', 'exit']:
                 trades_to_close = await self.reversal_handler.check_reversal_exit(
                     alert, self.open_trades
                 )
@@ -126,6 +126,11 @@ class TradingEngine:
             elif alert.type == 'reversal':
                 # Reversal alerts are handled above in exit check
                 self.telegram_bot.send_message(f"🔄 {symbol} Reversal Signal: {alert.signal.upper()}")
+            
+            elif alert.type == 'exit':
+                # Exit Appeared alerts are handled above in exit check
+                exit_direction = "Bullish" if alert.signal == 'bull' else "Bearish"
+                self.telegram_bot.send_message(f"⚠️ {symbol} Exit Appeared: {exit_direction}")
             
             return True
             
