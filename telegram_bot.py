@@ -40,10 +40,10 @@ class TelegramBot:
             "/strategy_report": self.handle_strategy_report,
             # Trend commands
             "/set_trend": self.handle_set_trend,
-            "/set_auto": self.handle_set_auto,  # NEW COMMAND
+            "/set_auto": self.handle_set_auto,
             "/show_trends": self.handle_show_trends,
             "/trend_matrix": self.handle_trend_matrix,
-            "/trend_mode": self.handle_trend_mode,  # NEW COMMAND
+            "/trend_mode": self.handle_trend_mode,
             "/lot_size_status": self.handle_lot_size_status,
             "/set_lot_size": self.handle_set_lot_size,
             "/chains": self.handle_chains_status,
@@ -51,7 +51,24 @@ class TelegramBot:
             "/clear_loss_data": self.handle_clear_loss_data,
             "/tp_system": self.handle_tp_system,
             "/sl_hunt": self.handle_sl_hunt,
-            "/tp_report": self.handle_tp_report
+            "/tp_report": self.handle_tp_report,
+            # New configuration commands
+            "/simulation_mode": self.handle_simulation_mode,
+            "/reentry_config": self.handle_reentry_config,
+            "/set_monitor_interval": self.handle_set_monitor_interval,
+            "/set_sl_offset": self.handle_set_sl_offset,
+            "/set_cooldown": self.handle_set_cooldown,
+            "/set_recovery_time": self.handle_set_recovery_time,
+            "/set_max_levels": self.handle_set_max_levels,
+            "/set_sl_reduction": self.handle_set_sl_reduction,
+            "/reset_reentry_config": self.handle_reset_reentry_config,
+            "/view_sl_config": self.handle_view_sl_config,
+            "/set_symbol_sl": self.handle_set_symbol_sl,
+            "/update_volatility": self.handle_update_volatility,
+            "/view_risk_caps": self.handle_view_risk_caps,
+            "/set_daily_cap": self.handle_set_daily_cap,
+            "/set_lifetime_cap": self.handle_set_lifetime_cap,
+            "/set_risk_tier": self.handle_set_risk_tier
         }
         self.risk_manager = None
         self.trading_engine = None
@@ -85,37 +102,64 @@ class TelegramBot:
     def handle_start(self, message):
         """Handle /start command"""
         rr_ratio = self.config.get("rr_ratio", 1.0)
+        re_entry = self.config.get("re_entry_config", {})
         welcome_msg = (
-            "🤖 <b>Zepix Trading Bot v2.0</b>\n\n"
+            "🤖 <b>Zepix Trading Bot v2.0</b>\n"
             "✅ Bot is active with enhanced features\n"
             f"📊 1:{rr_ratio} Risk-Reward System Active\n"
-            "🔄 Re-entry System Enabled\n\n"
-            "<b>Core Commands:</b>\n"
-            "/status - Complete bot status\n"
-            "/signal_status - Live signal status\n"
+            "🔄 Re-entry System Enabled\n"
+            "🔄 SL Hunt Re-entry System Enabled\n"
+            "⚡ Live Price Advanced System Working\n\n"
+            
+            "<b>📊 TRADING CONTROL</b>\n"
+            "/status - Bot &amp; trade status\n"
             "/pause - Pause trading\n"
-            "/resume - Resume trading\n\n"
-            "<b>Performance:</b>\n"
-            "/performance - Trading performance\n"
+            "/resume - Resume trading\n"
+            "/signal_status - Live signals\n"
+            "/simulation_mode [on/off] - Toggle simulation mode\n\n"
+            
+            "<b>📈 PERFORMANCE &amp; ANALYTICS</b>\n"
+            "/performance - Trading metrics\n"
             "/stats - Risk statistics\n"
-            "/trades - Open trades\n"
+            "/trades - Open positions\n"
             "/chains - Re-entry chains\n\n"
-            "<b>Logic Control:</b>\n"
-            "/logic_status - Check logic status\n"
-            "/logic1_on/off - Control Logic 1\n"
-            "/logic2_on/off - Control Logic 2\n"
-            "/logic3_on/off - Control Logic 3\n\n"
-            "<b>Lot Size Control:</b>\n"
-            "/lot_size_status - View current lot settings\n"
-            "/set_lot_size TIER LOT - Override lot size\n\n"
-            "<b>Trend Management:</b>\n"
-            "/set_trend SYMBOL TIMEFRAME TREND - Set MANUAL trend\n"
-            "/set_auto SYMBOL TIMEFRAME - Set AUTO mode (TradingView updates)\n"
-            "/trend_mode SYMBOL TIMEFRAME - Check current mode\n"
-            "/show_trends - View all trends\n"
-            "/trend_matrix - Complete trend matrix\n\n"
-            "<b>Risk Management:</b>\n"
-            "/lot_size_status - Current lot settings\n"
+            
+            "<b>⚙️ STRATEGY CONTROL</b>\n"
+            "/logic_status - View all logic status\n"
+            "/logic1_on, /logic1_off - 1H+15M→5M\n"
+            "/logic2_on, /logic2_off - 1H+15M→15M\n"
+            "/logic3_on, /logic3_off - D+1H→1H\n\n"
+            
+            "<b>🔄 ADVANCED RE-ENTRY SYSTEM</b>\n"
+            "/tp_system [on/off/status] - TP continuation\n"
+            "/sl_hunt [on/off/status] - SL hunt re-entry\n"
+            "/tp_report - 30-day re-entry stats\n"
+            "/reentry_config - View all re-entry settings\n"
+            "/set_monitor_interval [30-300] - Price monitor interval\n"
+            "/set_sl_offset [1-5] - SL hunt offset pips\n"
+            "/set_cooldown [30-300] - SL hunt cooldown\n"
+            "/set_recovery_time [1-10] - Price recovery window\n"
+            "/set_max_levels [1-5] - Max chain levels\n"
+            "/set_sl_reduction [0.3-0.7] - SL reduction %\n"
+            "/reset_reentry_config - Reset to defaults\n\n"
+            
+            "<b>📍 TREND MANAGEMENT</b>\n"
+            "/show_trends - All trends\n"
+            "/trend_matrix - Complete matrix\n"
+            "/set_trend SYMBOL TF TREND - Manual trend\n"
+            "/set_auto SYMBOL TF - Auto mode\n"
+            "/trend_mode SYMBOL TF - Check mode\n\n"
+            
+            "<b>💰 RISK &amp; LOT MANAGEMENT</b>\n"
+            "/view_risk_caps - Daily/Lifetime caps &amp; loss\n"
+            "/set_daily_cap [amount] - Set daily limit\n"
+            "/set_lifetime_cap [amount] - Set lifetime limit\n"
+            "/set_risk_tier BALANCE DAILY LIFETIME - Complete tier\n"
+            "/clear_loss_data - Reset lifetime loss\n\n"
+            "/view_sl_config - Symbol SL settings\n"
+            "/set_symbol_sl SYMBOL VOL SL - Update symbol SL\n"
+            "/update_volatility SYMBOL LEVEL - Quick volatility\n\n"
+            "/lot_size_status - Lot settings\n"
             "/set_lot_size TIER LOT - Override lot size"
         )
         self.send_message(welcome_msg)
@@ -727,6 +771,416 @@ class TelegramBot:
             
         except Exception as e:
             self.send_message(f"❌ Error generating report: {str(e)}")
+
+    def handle_simulation_mode(self, message):
+        """Toggle simulation mode on/off"""
+        try:
+            parts = message['text'].split()
+            if len(parts) != 2:
+                self.send_message("❌ Usage: /simulation_mode [on/off]")
+                return
+            
+            mode = parts[1].lower()
+            if mode not in ['on', 'off']:
+                self.send_message("❌ Invalid mode. Use 'on' or 'off'")
+                return
+            
+            simulate = (mode == 'on')
+            self.config.update('simulate_orders', simulate)
+            
+            status = "ENABLED ✅" if simulate else "DISABLED ❌"
+            self.send_message(f"🔄 Simulation Mode: {status}\n\n{'⚠️ Orders will be simulated (not live)' if simulate else '✅ Live trading mode active'}")
+        
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+
+    def handle_reentry_config(self, message):
+        """Display all re-entry configuration settings"""
+        re_cfg = self.config.get('re_entry_config', {})
+        
+        msg = "⚙️ <b>Re-entry System Configuration</b>\n\n"
+        msg += f"<b>System Status:</b>\n"
+        msg += f"TP Re-entry: {'✅ ON' if re_cfg.get('tp_reentry_enabled', True) else '❌ OFF'}\n"
+        msg += f"SL Hunt Re-entry: {'✅ ON' if re_cfg.get('sl_hunt_reentry_enabled', True) else '❌ OFF'}\n"
+        msg += f"Reversal Exit: {'✅ ON' if re_cfg.get('reversal_exit_enabled', True) else '❌ OFF'}\n\n"
+        
+        msg += f"<b>Timing Settings:</b>\n"
+        msg += f"Monitor Interval: {re_cfg.get('price_monitor_interval_seconds', 30)}s\n"
+        msg += f"SL Hunt Cooldown: {re_cfg.get('sl_hunt_cooldown_seconds', 60)}s\n"
+        msg += f"Recovery Window: {re_cfg.get('price_recovery_check_minutes', 2)} min\n\n"
+        
+        msg += f"<b>Re-entry Rules:</b>\n"
+        msg += f"SL Hunt Offset: {re_cfg.get('sl_hunt_offset_pips', 1.0)} pips\n"
+        msg += f"Max Chain Levels: {re_cfg.get('max_chain_levels', 2)}\n"
+        msg += f"SL Reduction: {int(re_cfg.get('sl_reduction_per_level', 0.5) * 100)}%"
+        
+        self.send_message(msg)
+
+    def handle_set_monitor_interval(self, message):
+        """Set price monitor interval (30-300 seconds)"""
+        try:
+            parts = message['text'].split()
+            if len(parts) != 2:
+                self.send_message("❌ Usage: /set_monitor_interval [30-300]")
+                return
+            
+            interval = int(parts[1])
+            if not (30 <= interval <= 300):
+                self.send_message("❌ Interval must be between 30-300 seconds")
+                return
+            
+            re_cfg = self.config.get('re_entry_config', {})
+            re_cfg['price_monitor_interval_seconds'] = interval
+            self.config.update('re_entry_config', re_cfg)
+            
+            self.send_message(f"✅ Price monitor interval set to {interval}s")
+        
+        except ValueError:
+            self.send_message("❌ Invalid number. Use: /set_monitor_interval [30-300]")
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+
+    def handle_set_sl_offset(self, message):
+        """Set SL hunt offset pips (1-5)"""
+        try:
+            parts = message['text'].split()
+            if len(parts) != 2:
+                self.send_message("❌ Usage: /set_sl_offset [1-5]")
+                return
+            
+            offset = float(parts[1])
+            if not (1 <= offset <= 5):
+                self.send_message("❌ Offset must be between 1-5 pips")
+                return
+            
+            re_cfg = self.config.get('re_entry_config', {})
+            re_cfg['sl_hunt_offset_pips'] = offset
+            self.config.update('re_entry_config', re_cfg)
+            
+            self.send_message(f"✅ SL hunt offset set to {offset} pips")
+        
+        except ValueError:
+            self.send_message("❌ Invalid number. Use: /set_sl_offset [1-5]")
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+
+    def handle_set_cooldown(self, message):
+        """Set SL hunt cooldown (30-300 seconds)"""
+        try:
+            parts = message['text'].split()
+            if len(parts) != 2:
+                self.send_message("❌ Usage: /set_cooldown [30-300]")
+                return
+            
+            cooldown = int(parts[1])
+            if not (30 <= cooldown <= 300):
+                self.send_message("❌ Cooldown must be between 30-300 seconds")
+                return
+            
+            re_cfg = self.config.get('re_entry_config', {})
+            re_cfg['sl_hunt_cooldown_seconds'] = cooldown
+            self.config.update('re_entry_config', re_cfg)
+            
+            self.send_message(f"✅ SL hunt cooldown set to {cooldown}s")
+        
+        except ValueError:
+            self.send_message("❌ Invalid number. Use: /set_cooldown [30-300]")
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+
+    def handle_set_recovery_time(self, message):
+        """Set price recovery window (1-10 minutes)"""
+        try:
+            parts = message['text'].split()
+            if len(parts) != 2:
+                self.send_message("❌ Usage: /set_recovery_time [1-10]")
+                return
+            
+            minutes = int(parts[1])
+            if not (1 <= minutes <= 10):
+                self.send_message("❌ Recovery time must be between 1-10 minutes")
+                return
+            
+            re_cfg = self.config.get('re_entry_config', {})
+            re_cfg['price_recovery_check_minutes'] = minutes
+            self.config.update('re_entry_config', re_cfg)
+            
+            self.send_message(f"✅ Price recovery window set to {minutes} minutes")
+        
+        except ValueError:
+            self.send_message("❌ Invalid number. Use: /set_recovery_time [1-10]")
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+
+    def handle_set_max_levels(self, message):
+        """Set max re-entry chain levels (1-5)"""
+        try:
+            parts = message['text'].split()
+            if len(parts) != 2:
+                self.send_message("❌ Usage: /set_max_levels [1-5]")
+                return
+            
+            levels = int(parts[1])
+            if not (1 <= levels <= 5):
+                self.send_message("❌ Max levels must be between 1-5")
+                return
+            
+            re_cfg = self.config.get('re_entry_config', {})
+            re_cfg['max_chain_levels'] = levels
+            self.config.update('re_entry_config', re_cfg)
+            
+            self.send_message(f"✅ Max re-entry levels set to {levels}")
+        
+        except ValueError:
+            self.send_message("❌ Invalid number. Use: /set_max_levels [1-5]")
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+
+    def handle_set_sl_reduction(self, message):
+        """Set SL reduction percentage (0.3-0.7 = 30%-70%)"""
+        try:
+            parts = message['text'].split()
+            if len(parts) != 2:
+                self.send_message("❌ Usage: /set_sl_reduction [0.3-0.7]")
+                return
+            
+            reduction = float(parts[1])
+            if not (0.3 <= reduction <= 0.7):
+                self.send_message("❌ Reduction must be between 0.3-0.7 (30%-70%)")
+                return
+            
+            re_cfg = self.config.get('re_entry_config', {})
+            re_cfg['sl_reduction_per_level'] = reduction
+            self.config.update('re_entry_config', re_cfg)
+            
+            self.send_message(f"✅ SL reduction set to {int(reduction * 100)}% per level")
+        
+        except ValueError:
+            self.send_message("❌ Invalid number. Use: /set_sl_reduction [0.3-0.7]")
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+
+    def handle_reset_reentry_config(self, message):
+        """Reset all re-entry settings to defaults"""
+        default_re_cfg = {
+            "max_chain_levels": 2,
+            "sl_reduction_per_level": 0.5,
+            "recovery_window_minutes": 30,
+            "min_time_between_re_entries": 60,
+            "sl_hunt_offset_pips": 1.0,
+            "tp_reentry_enabled": True,
+            "sl_hunt_reentry_enabled": True,
+            "reversal_exit_enabled": True,
+            "price_monitor_interval_seconds": 30,
+            "tp_continuation_price_gap_pips": 2.0,
+            "sl_hunt_cooldown_seconds": 60,
+            "price_recovery_check_minutes": 2
+        }
+        
+        self.config.update('re_entry_config', default_re_cfg)
+        self.send_message("✅ Re-entry config reset to defaults:\n\n"
+                         "Monitor Interval: 30s\n"
+                         "SL Offset: 1 pip\n"
+                         "Cooldown: 60s\n"
+                         "Recovery: 2 min\n"
+                         "Max Levels: 2\n"
+                         "SL Reduction: 50%")
+
+    def handle_view_sl_config(self, message):
+        """Display all symbol SL configurations"""
+        symbols = self.config.get('symbol_config', {})
+        
+        msg = "📊 <b>Symbol SL Configuration</b>\n\n"
+        
+        for symbol, cfg in symbols.items():
+            volatility = cfg.get('volatility', 'MEDIUM')
+            min_sl = cfg.get('min_sl_distance', 0)
+            pip_size = cfg.get('pip_size', 0)
+            
+            msg += f"<b>{symbol}</b>\n"
+            msg += f"Volatility: {volatility}\n"
+            msg += f"Min SL: {min_sl} ({int(min_sl/pip_size) if pip_size > 0 else 0} pips)\n"
+            msg += f"Pip Size: {pip_size}\n\n"
+        
+        self.send_message(msg)
+
+    def handle_set_symbol_sl(self, message):
+        """Set symbol SL configuration - /set_symbol_sl SYMBOL VOLATILITY SL"""
+        try:
+            parts = message['text'].split()
+            if len(parts) != 4:
+                self.send_message("❌ Usage: /set_symbol_sl SYMBOL VOLATILITY SL\nExample: /set_symbol_sl XAUUSD HIGH 0.15")
+                return
+            
+            symbol = parts[1].upper()
+            volatility = parts[2].upper()
+            sl_distance = float(parts[3])
+            
+            if volatility not in ['LOW', 'MEDIUM', 'HIGH']:
+                self.send_message("❌ Volatility must be LOW, MEDIUM, or HIGH")
+                return
+            
+            symbols = self.config.get('symbol_config', {})
+            if symbol not in symbols:
+                self.send_message(f"❌ Symbol {symbol} not found in config")
+                return
+            
+            symbols[symbol]['volatility'] = volatility
+            symbols[symbol]['min_sl_distance'] = sl_distance
+            self.config.update('symbol_config', symbols)
+            
+            self.send_message(f"✅ {symbol} updated:\nVolatility: {volatility}\nMin SL: {sl_distance}")
+        
+        except ValueError:
+            self.send_message("❌ Invalid SL value. Use decimal format (e.g., 0.15)")
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+
+    def handle_update_volatility(self, message):
+        """Quick volatility update - /update_volatility SYMBOL LEVEL"""
+        try:
+            parts = message['text'].split()
+            if len(parts) != 3:
+                self.send_message("❌ Usage: /update_volatility SYMBOL LEVEL\nExample: /update_volatility XAUUSD HIGH")
+                return
+            
+            symbol = parts[1].upper()
+            volatility = parts[2].upper()
+            
+            if volatility not in ['LOW', 'MEDIUM', 'HIGH']:
+                self.send_message("❌ Volatility must be LOW, MEDIUM, or HIGH")
+                return
+            
+            symbols = self.config.get('symbol_config', {})
+            if symbol not in symbols:
+                self.send_message(f"❌ Symbol {symbol} not found")
+                return
+            
+            sl_defaults = {'LOW': 0.0005, 'MEDIUM': 0.001, 'HIGH': 0.0015}
+            if symbol == 'XAUUSD':
+                sl_defaults = {'LOW': 0.05, 'MEDIUM': 0.1, 'HIGH': 0.15}
+            
+            symbols[symbol]['volatility'] = volatility
+            symbols[symbol]['min_sl_distance'] = sl_defaults[volatility]
+            self.config.update('symbol_config', symbols)
+            
+            self.send_message(f"✅ {symbol} volatility updated to {volatility}\nAuto SL: {sl_defaults[volatility]}")
+        
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+
+    def handle_view_risk_caps(self, message):
+        """Display risk caps and current loss status"""
+        if not self.risk_manager:
+            self.send_message("❌ Risk manager not initialized")
+            return
+        
+        tiers = self.config.get('risk_tiers', {})
+        current_tier = self.config.get('default_risk_tier', '5000')
+        
+        daily_loss = self.risk_manager.daily_loss
+        lifetime_loss = self.risk_manager.lifetime_loss
+        
+        msg = "💰 <b>Risk Caps &amp; Loss Status</b>\n\n"
+        msg += f"<b>Current Tier: ${current_tier}</b>\n\n"
+        
+        msg += f"<b>Current Loss:</b>\n"
+        msg += f"Daily: ${abs(daily_loss):.2f}\n"
+        msg += f"Lifetime: ${abs(lifetime_loss):.2f}\n\n"
+        
+        msg += f"<b>All Risk Tiers:</b>\n"
+        for balance, caps in sorted(tiers.items(), key=lambda x: int(x[0])):
+            daily_cap = caps.get('daily_loss_limit', 0)
+            lifetime_cap = caps.get('max_total_loss', 0)
+            msg += f"${balance}: Daily ${daily_cap} | Lifetime ${lifetime_cap}\n"
+        
+        self.send_message(msg)
+
+    def handle_set_daily_cap(self, message):
+        """Set daily loss limit for current tier"""
+        try:
+            parts = message['text'].split()
+            if len(parts) != 2:
+                self.send_message("❌ Usage: /set_daily_cap AMOUNT\nExample: /set_daily_cap 500")
+                return
+            
+            amount = float(parts[1])
+            if amount <= 0:
+                self.send_message("❌ Amount must be positive")
+                return
+            
+            current_tier = self.config.get('default_risk_tier', '5000')
+            tiers = self.config.get('risk_tiers', {})
+            
+            if current_tier in tiers:
+                tiers[current_tier]['daily_loss_limit'] = amount
+                self.config.update('risk_tiers', tiers)
+                self.send_message(f"✅ Daily loss limit for ${current_tier} tier set to ${amount}")
+            else:
+                self.send_message(f"❌ Tier ${current_tier} not found")
+        
+        except ValueError:
+            self.send_message("❌ Invalid amount. Use numbers only")
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+
+    def handle_set_lifetime_cap(self, message):
+        """Set lifetime loss limit for current tier"""
+        try:
+            parts = message['text'].split()
+            if len(parts) != 2:
+                self.send_message("❌ Usage: /set_lifetime_cap AMOUNT\nExample: /set_lifetime_cap 2000")
+                return
+            
+            amount = float(parts[1])
+            if amount <= 0:
+                self.send_message("❌ Amount must be positive")
+                return
+            
+            current_tier = self.config.get('default_risk_tier', '5000')
+            tiers = self.config.get('risk_tiers', {})
+            
+            if current_tier in tiers:
+                tiers[current_tier]['max_total_loss'] = amount
+                self.config.update('risk_tiers', tiers)
+                self.send_message(f"✅ Lifetime loss limit for ${current_tier} tier set to ${amount}")
+            else:
+                self.send_message(f"❌ Tier ${current_tier} not found")
+        
+        except ValueError:
+            self.send_message("❌ Invalid amount. Use numbers only")
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+
+    def handle_set_risk_tier(self, message):
+        """Set complete risk tier - /set_risk_tier BALANCE DAILY LIFETIME"""
+        try:
+            parts = message['text'].split()
+            if len(parts) != 4:
+                self.send_message("❌ Usage: /set_risk_tier BALANCE DAILY LIFETIME\nExample: /set_risk_tier 10000 500 2000")
+                return
+            
+            balance = parts[1]
+            daily_limit = float(parts[2])
+            lifetime_limit = float(parts[3])
+            
+            if daily_limit <= 0 or lifetime_limit <= 0:
+                self.send_message("❌ Limits must be positive")
+                return
+            
+            tiers = self.config.get('risk_tiers', {})
+            tiers[balance] = {
+                'daily_loss_limit': daily_limit,
+                'max_total_loss': lifetime_limit
+            }
+            self.config.update('risk_tiers', tiers)
+            
+            self.send_message(f"✅ Risk tier ${balance} configured:\nDaily: ${daily_limit}\nLifetime: ${lifetime_limit}")
+        
+        except ValueError:
+            self.send_message("❌ Invalid values. Use: /set_risk_tier BALANCE DAILY LIFETIME")
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
 
     def start_polling(self):
         """Start polling for Telegram commands"""
