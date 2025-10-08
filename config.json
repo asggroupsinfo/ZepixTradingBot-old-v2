@@ -118,7 +118,13 @@
         "max_chain_levels": 2,
         "sl_reduction_per_level": 0.5,
         "recovery_window_minutes": 30,
-        "min_time_between_re_entries": 60
+        "min_time_between_re_entries": 60,
+        "sl_hunt_offset_pips": 1.0,
+        "tp_reentry_enabled": true,
+        "sl_hunt_reentry_enabled": true,
+        "reversal_exit_enabled": true,
+        "price_monitor_interval_seconds": 30,
+        "tp_continuation_price_gap_pips": 2.0
     },
     "rr_ratio": 1.5,
     "risk_tiers": {

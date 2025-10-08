@@ -64,6 +64,43 @@ class TradeDatabase:
             )
         ''')
         
+        # TP re-entry tracking table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tp_reentry_events (
+                id INTEGER PRIMARY KEY,
+                chain_id TEXT,
+                symbol TEXT,
+                tp_level INTEGER,
+                tp_price REAL,
+                reentry_price REAL,
+                sl_reduction_percent REAL,
+                pnl REAL,
+                timestamp DATETIME
+            )
+        ''')
+        
+        # Reversal exit events table  
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS reversal_exit_events (
+                id INTEGER PRIMARY KEY,
+                trade_id TEXT,
+                symbol TEXT,
+                exit_price REAL,
+                exit_signal TEXT,
+                pnl REAL,
+                timestamp DATETIME
+            )
+        ''')
+        
+        # System state table for pause/resume control
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS system_state (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                updated_at DATETIME
+            )
+        ''')
+        
         self.conn.commit()
 
     def save_trade(self, trade: Trade):
@@ -142,3 +179,41 @@ class TradeDatabase:
         columns = [description[0] for description in cursor.description]
         
         return dict(zip(columns, result))
+    
+    def clear_lifetime_losses(self):
+        """Reset lifetime loss counter (database side)"""
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            UPDATE system_state SET value = '0', updated_at = ? WHERE key = 'lifetime_loss'
+        ''', (datetime.now().isoformat(),))
+        self.conn.commit()
+        
+    def get_tp_reentry_stats(self) -> Dict[str, Any]:
+        """Get TP re-entry statistics"""
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            SELECT 
+                COUNT(*) as total_tp_reentries,
+                SUM(pnl) as total_tp_reentry_pnl,
+                AVG(pnl) as avg_tp_reentry_pnl,
+                COUNT(CASE WHEN pnl > 0 THEN 1 END) as profitable_tp_reentries
+            FROM tp_reentry_events
+            WHERE timestamp >= datetime('now', '-30 days')
+        ''')
+        result = cursor.fetchone()
+        columns = [desc[0] for desc in cursor.description]
+        return dict(zip(columns, result)) if result else {}
+    
+    def get_sl_hunt_reentry_stats(self) -> Dict[str, Any]:
+        """Get SL hunt re-entry statistics (from sl_events where recovery_successful=1)"""
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            SELECT 
+                COUNT(CASE WHEN recovery_successful THEN 1 END) as total_sl_hunt_reentries,
+                COUNT(CASE WHEN recovery_attempted THEN 1 END) as sl_hunt_attempts
+            FROM sl_events
+            WHERE hit_time >= datetime('now', '-30 days')
+        ''')
+        result = cursor.fetchone()
+        columns = [desc[0] for desc in cursor.description]
+        return dict(zip(columns, result)) if result else {}

@@ -10,6 +10,8 @@ from database import TradeDatabase
 from pip_calculator import PipCalculator
 from timeframe_trend_manager import TimeframeTrendManager
 from reentry_manager import ReEntryManager
+from price_monitor_service import PriceMonitorService
+from reversal_exit_handler import ReversalExitHandler
 import json
 
 class TradingEngine:
@@ -25,10 +27,22 @@ class TradingEngine:
         # Risk manager ko MT5 client set karo
         self.risk_manager.set_mt5_client(mt5_client)
         
-        # New managers
+        # Database for trade history
+        self.db = TradeDatabase()
+        
+        # Core managers
         self.pip_calculator = PipCalculator(config)
         self.trend_manager = TimeframeTrendManager()
         self.reentry_manager = ReEntryManager(config)
+        
+        # NEW: Advanced re-entry and exit handlers
+        self.price_monitor = PriceMonitorService(
+            config, mt5_client, self.reentry_manager, 
+            self.trend_manager, self.pip_calculator, self
+        )
+        self.reversal_handler = ReversalExitHandler(
+            config, mt5_client, telegram_bot, self.db
+        )
         
         # Current signals per symbol
         self.current_signals = {}
@@ -41,9 +55,6 @@ class TradingEngine:
         self.logic1_enabled = True
         self.logic2_enabled = True  
         self.logic3_enabled = True
-        
-        # Database for trade history
-        self.db = TradeDatabase()
 
     async def initialize(self):
         """Initialize the trading engine"""
@@ -51,7 +62,12 @@ class TradingEngine:
         if success:
             self.telegram_bot.send_message("✅ MT5 Connection Established")
             self.telegram_bot.set_trend_manager(self.trend_manager)
+            
+            # Start background price monitor
+            await self.price_monitor.start()
+            
             print("✅ Trading engine initialized successfully")
+            print("✅ Price monitor service started")
         return success
 
     def initialize_symbol_signals(self, symbol: str):
@@ -73,6 +89,23 @@ class TradingEngine:
             # Initialize symbol signals if not exists
             self.initialize_symbol_signals(symbol)
             
+            # NEW: Check for reversal exit FIRST before processing other alerts
+            if alert.type in ['reversal', 'trend', 'entry']:
+                trades_to_close = await self.reversal_handler.check_reversal_exit(
+                    alert, self.open_trades
+                )
+                
+                for close_info in trades_to_close:
+                    await self.reversal_handler.execute_reversal_exit(
+                        close_info['trade'],
+                        close_info['exit_price'],
+                        close_info['exit_reason']
+                    )
+                    # Remove from open trades
+                    if close_info['trade'] in self.open_trades:
+                        self.open_trades.remove(close_info['trade'])
+                        self.risk_manager.remove_closed_trade(close_info['trade'])
+            
             # Update based on alert type
             if alert.type == 'bias':
                 # Update timeframe trend for bias
@@ -89,6 +122,10 @@ class TradingEngine:
             elif alert.type == 'entry':
                 # Execute trade based on entry signal
                 await self.execute_trades(alert)
+            
+            elif alert.type == 'reversal':
+                # Reversal alerts are handled above in exit check
+                self.telegram_bot.send_message(f"🔄 {symbol} Reversal Signal: {alert.signal.upper()}")
             
             return True
             
@@ -218,6 +255,10 @@ class TradingEngine:
             
             # Create re-entry chain for this trade
             chain = self.reentry_manager.create_chain(trade)
+            
+            # NEW: Register for SL hunt monitoring (preemptively)
+            if self.config["re_entry_config"]["sl_hunt_reentry_enabled"]:
+                self.price_monitor.register_sl_hunt(trade, strategy)
             
             self.open_trades.append(trade)
             self.risk_manager.add_open_trade(trade)
@@ -385,6 +426,10 @@ class TradingEngine:
                         (trade.direction == "sell" and current_price >= trade.sl)):
                         await self.close_trade(trade, "SL_HIT", current_price)
                         self.reentry_manager.record_sl_hit(trade)
+                        
+                        # NEW: Register for SL hunt re-entry monitoring
+                        if self.config["re_entry_config"]["sl_hunt_reentry_enabled"]:
+                            self.price_monitor.register_sl_hunt(trade, trade.strategy)
                         continue
                     
                     # Check TP hit
@@ -392,6 +437,10 @@ class TradingEngine:
                         (trade.direction == "sell" and current_price <= trade.tp)):
                         await self.close_trade(trade, "TP_HIT", current_price)
                         self.reentry_manager.record_tp_hit(trade, current_price)
+                        
+                        # NEW: Register for TP continuation re-entry monitoring
+                        if self.config["re_entry_config"]["tp_reentry_enabled"]:
+                            self.price_monitor.register_tp_continuation(trade, current_price, trade.strategy)
                         continue
                     
                     # Check trend reversal exit
