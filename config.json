@@ -123,6 +123,7 @@
         "tp_reentry_enabled": true,
         "sl_hunt_reentry_enabled": true,
         "reversal_exit_enabled": true,
+        "exit_continuation_enabled": true,
         "price_monitor_interval_seconds": 30,
         "tp_continuation_price_gap_pips": 2.0,
         "sl_hunt_cooldown_seconds": 60,

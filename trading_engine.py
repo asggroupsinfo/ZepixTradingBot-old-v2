@@ -41,7 +41,7 @@ class TradingEngine:
             self.trend_manager, self.pip_calculator, self
         )
         self.reversal_handler = ReversalExitHandler(
-            config, mt5_client, telegram_bot, self.db
+            config, mt5_client, telegram_bot, self.db, price_monitor=self.price_monitor
         )
         
         # Current signals per symbol

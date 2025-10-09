@@ -10,13 +10,16 @@ class ReversalExitHandler:
     Accepts:
     1. Reversal alerts (type: 'reversal', signal: 'reversal_bull/bear')
     2. Opposite entry signals (if BUY trade open, SELL entry = exit)
+    3. Trend reversal alerts (type: 'trend', opposite direction)
+    4. Exit Appeared alerts (type: 'exit', early warning)
     """
     
-    def __init__(self, config: Config, mt5_client, telegram_bot, db):
+    def __init__(self, config: Config, mt5_client, telegram_bot, db, price_monitor=None):
         self.config = config
         self.mt5_client = mt5_client
         self.telegram_bot = telegram_bot
         self.db = db
+        self.price_monitor = price_monitor
         self.logger = logging.getLogger(__name__)
     
     async def check_reversal_exit(self, alert: Alert, open_trades: list) -> list:
@@ -132,6 +135,19 @@ class ReversalExitHandler:
             f"PnL: ${pnl:.2f}\n"
             f"Strategy: {trade.strategy}"
         )
+        
+        # Register continuation monitoring (NEW FEATURE)
+        # After Exit Appeared/Reversal exit, continue monitoring for re-entry with price gap
+        if self.price_monitor and self.config["re_entry_config"].get("exit_continuation_enabled", True):
+            # Only register for specific exit reasons
+            if any(reason in exit_reason for reason in ['EXIT_APPEARED', 'TREND_REVERSAL', 'REVERSAL_', 'OPPOSITE_SIGNAL']):
+                self.price_monitor.register_exit_continuation(
+                    trade=trade,
+                    exit_price=exit_price,
+                    exit_reason=exit_reason,
+                    logic=trade.strategy,
+                    timeframe='15M'  # Default timeframe
+                )
         
         self.logger.info(f"✅ Reversal exit executed: {trade.symbol} PnL ${pnl:.2f}")
         return True

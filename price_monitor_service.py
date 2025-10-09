@@ -34,6 +34,9 @@ class PriceMonitorService:
         # TP re-entry tracking
         self.tp_continuation_pending = {}  # symbol -> {'tp_price': ..., 'direction': ...}
         
+        # Exit continuation tracking (Exit Appeared/Reversal signals)
+        self.exit_continuation_pending = {}  # symbol -> {'exit_price': ..., 'direction': ..., 'exit_reason': ...}
+        
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
     
@@ -79,6 +82,9 @@ class PriceMonitorService:
         
         # Check TP continuation re-entries
         await self._check_tp_continuation_reentries()
+        
+        # Check Exit continuation re-entries (NEW)
+        await self._check_exit_continuation_reentries()
     
     async def _check_sl_hunt_reentries(self):
         """
@@ -201,6 +207,78 @@ class PriceMonitorService:
                 
                 # Remove from pending
                 del self.tp_continuation_pending[symbol]
+    
+    async def _check_exit_continuation_reentries(self):
+        """
+        Check for re-entry after Exit Appeared/Reversal exit signals
+        After exit (Exit Appeared/Reversal), continue monitoring for re-entry with price gap
+        Example: Exit @ 3640.200 → Monitor → Re-entry @ 3642.200 (gap required)
+        """
+        if not self.config["re_entry_config"].get("exit_continuation_enabled", True):
+            return
+        
+        for symbol in list(self.exit_continuation_pending.keys()):
+            pending = self.exit_continuation_pending[symbol]
+            
+            # Get current price from MT5
+            current_price = self._get_current_price(symbol, pending['direction'])
+            if current_price is None:
+                continue
+            
+            exit_price = pending['exit_price']
+            direction = pending['direction']
+            logic = pending.get('logic', 'LOGIC1')
+            exit_reason = pending.get('exit_reason', 'EXIT')
+            price_gap_pips = self.config["re_entry_config"]["tp_continuation_price_gap_pips"]
+            
+            # Calculate pip value for symbol
+            symbol_config = self.config["symbol_config"][symbol]
+            pip_size = symbol_config["pip_size"]
+            price_gap = price_gap_pips * pip_size
+            
+            # Check if price has moved enough from exit price (continuation direction)
+            gap_reached = False
+            if direction == 'buy':
+                gap_reached = current_price >= (exit_price + price_gap)
+            else:
+                gap_reached = current_price <= (exit_price - price_gap)
+            
+            if gap_reached:
+                # Validate trend alignment (CRITICAL - must match logic)
+                alignment = self.trend_manager.check_logic_alignment(symbol, logic)
+                
+                if not alignment['aligned']:
+                    self.logger.info(f"❌ Exit continuation blocked - trend not aligned for {symbol} after {exit_reason}")
+                    del self.exit_continuation_pending[symbol]
+                    continue
+                
+                signal_direction = "BULLISH" if direction == "buy" else "BEARISH"
+                if alignment['direction'] != signal_direction:
+                    self.logger.info(f"❌ Exit continuation blocked - direction mismatch for {symbol}")
+                    del self.exit_continuation_pending[symbol]
+                    continue
+                
+                # Execute Exit continuation re-entry
+                self.logger.info(f"🔄 Exit Continuation Re-Entry Triggered: {symbol} @ {current_price} after {exit_reason}")
+                
+                # Create new chain for exit continuation
+                from models import Alert
+                entry_signal = Alert(
+                    symbol=symbol,
+                    timeframe=pending.get('timeframe', '15M'),
+                    signal='buy' if direction == 'buy' else 'sell',
+                    type='entry',
+                    price=current_price,
+                    timestamp=datetime.now().isoformat()
+                )
+                
+                # Execute via trading engine
+                await self.trading_engine.process_alert(entry_signal)
+                
+                # Remove from pending
+                del self.exit_continuation_pending[symbol]
+                
+                self.logger.info(f"✅ Exit continuation re-entry executed for {symbol}")
     
     async def _execute_sl_hunt_reentry(self, symbol: str, direction: str, 
                                        price: float, chain_id: str, logic: str):
@@ -419,3 +497,26 @@ class PriceMonitorService:
         if symbol in self.tp_continuation_pending:
             del self.tp_continuation_pending[symbol]
             self.logger.info(f"🛑 TP continuation stopped for {symbol}: {reason}")
+    
+    def register_exit_continuation(self, trade: Trade, exit_price: float, exit_reason: str, logic: str, timeframe: str = '15M'):
+        """
+        Register continuation monitoring after Exit Appeared/Reversal exit
+        Bot will monitor for re-entry with price gap after exit signal
+        """
+        
+        self.exit_continuation_pending[trade.symbol] = {
+            'exit_price': exit_price,
+            'direction': trade.direction,
+            'logic': logic,
+            'exit_reason': exit_reason,
+            'timeframe': timeframe
+        }
+        
+        self.monitored_symbols.add(trade.symbol)
+        self.logger.info(f"🔄 Exit continuation monitoring registered: {trade.symbol} after {exit_reason} @ {exit_price:.5f}")
+    
+    def stop_exit_continuation(self, symbol: str, reason: str = "Alignment lost"):
+        """Stop exit continuation monitoring for a symbol"""
+        if symbol in self.exit_continuation_pending:
+            del self.exit_continuation_pending[symbol]
+            self.logger.info(f"🛑 Exit continuation stopped for {symbol}: {reason}")
