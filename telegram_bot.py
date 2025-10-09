@@ -51,6 +51,7 @@ class TelegramBot:
             "/clear_loss_data": self.handle_clear_loss_data,
             "/tp_system": self.handle_tp_system,
             "/sl_hunt": self.handle_sl_hunt,
+            "/exit_continuation": self.handle_exit_continuation,
             "/tp_report": self.handle_tp_report,
             # New configuration commands
             "/simulation_mode": self.handle_simulation_mode,
@@ -738,6 +739,56 @@ class TelegramBot:
         except Exception as e:
             self.send_message(f"❌ Error: {str(e)}")
     
+    def handle_exit_continuation(self, message):
+        """Control Exit Continuation system: /exit_continuation [on/off/status]"""
+        try:
+            parts = message["text"].strip().split()
+            
+            re_entry_config = self.config.get("re_entry_config", {})
+            
+            if len(parts) < 2:
+                enabled = re_entry_config.get("exit_continuation_enabled", True)
+                status_emoji = "✅" if enabled else "❌"
+                msg = (
+                    f"{status_emoji} <b>Exit Continuation System</b>\n\n"
+                    f"Status: {'ENABLED' if enabled else 'DISABLED'}\n"
+                    f"Price Gap: {re_entry_config.get('tp_continuation_price_gap_pips', 2)} pips\n"
+                    f"Monitor Interval: {re_entry_config.get('price_monitor_interval_seconds', 30)}s\n\n"
+                    f"<b>What it does:</b>\n"
+                    f"• After Exit Appeared signal → Profit book\n"
+                    f"• Continue monitoring with price gap\n"
+                    f"• Auto re-entry if price & alignment match\n"
+                    f"• Works for: EXIT_APPEARED, REVERSAL, TREND_REVERSAL, OPPOSITE_SIGNAL\n\n"
+                    "<b>Usage:</b>\n"
+                    "/exit_continuation on - Enable continuation\n"
+                    "/exit_continuation off - Disable continuation\n"
+                    "/exit_continuation status - Show this status"
+                )
+                self.send_message(msg)
+                return
+            
+            action = parts[1].lower()
+            
+            if action == "on":
+                if "re_entry_config" in self.config.config:
+                    self.config.config["re_entry_config"]["exit_continuation_enabled"] = True
+                    self.config.save()
+                self.send_message("✅ Exit continuation system ENABLED\n\n"
+                                "Bot will monitor for re-entry after exit signals with price gap")
+            elif action == "off":
+                if "re_entry_config" in self.config.config:
+                    self.config.config["re_entry_config"]["exit_continuation_enabled"] = False
+                    self.config.save()
+                self.send_message("❌ Exit continuation system DISABLED\n\n"
+                                "Bot will stop monitoring after exit signals")
+            elif action == "status":
+                self.handle_exit_continuation({"text": "/exit_continuation"})
+            else:
+                self.send_message("❌ Invalid action. Use: on, off, or status")
+                
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+    
     def handle_tp_report(self, message):
         """Show TP re-entry statistics and performance"""
         if not self.trading_engine:
@@ -802,7 +853,8 @@ class TelegramBot:
         msg += f"<b>System Status:</b>\n"
         msg += f"TP Re-entry: {'✅ ON' if re_cfg.get('tp_reentry_enabled', True) else '❌ OFF'}\n"
         msg += f"SL Hunt Re-entry: {'✅ ON' if re_cfg.get('sl_hunt_reentry_enabled', True) else '❌ OFF'}\n"
-        msg += f"Reversal Exit: {'✅ ON' if re_cfg.get('reversal_exit_enabled', True) else '❌ OFF'}\n\n"
+        msg += f"Reversal Exit: {'✅ ON' if re_cfg.get('reversal_exit_enabled', True) else '❌ OFF'}\n"
+        msg += f"Exit Continuation: {'✅ ON' if re_cfg.get('exit_continuation_enabled', True) else '❌ OFF'}\n\n"
         
         msg += f"<b>Timing Settings:</b>\n"
         msg += f"Monitor Interval: {re_cfg.get('price_monitor_interval_seconds', 30)}s\n"
