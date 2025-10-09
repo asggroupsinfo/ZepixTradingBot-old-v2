@@ -772,13 +772,11 @@ class TelegramBot:
             if action == "on":
                 if "re_entry_config" in self.config.config:
                     self.config.config["re_entry_config"]["exit_continuation_enabled"] = True
-                    self.config.save()
                 self.send_message("✅ Exit continuation system ENABLED\n\n"
                                 "Bot will monitor for re-entry after exit signals with price gap")
             elif action == "off":
                 if "re_entry_config" in self.config.config:
                     self.config.config["re_entry_config"]["exit_continuation_enabled"] = False
-                    self.config.save()
                 self.send_message("❌ Exit continuation system DISABLED\n\n"
                                 "Bot will stop monitoring after exit signals")
             elif action == "status":

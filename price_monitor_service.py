@@ -265,11 +265,10 @@ class PriceMonitorService:
                 from models import Alert
                 entry_signal = Alert(
                     symbol=symbol,
-                    timeframe=pending.get('timeframe', '15M'),
+                    tf=pending.get('timeframe', '15M'),
                     signal='buy' if direction == 'buy' else 'sell',
                     type='entry',
-                    price=current_price,
-                    timestamp=datetime.now().isoformat()
+                    price=current_price
                 )
                 
                 # Execute via trading engine
