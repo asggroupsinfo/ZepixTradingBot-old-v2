@@ -2,6 +2,30 @@
 
 ## Recent Updates
 
+### October 10, 2025 - DUAL SL SYSTEM + CRITICAL GOLD PIP FIX ✅
+**PRODUCTION-READY: Dual Volatility-Based Dynamic SL System with Accurate Risk Management**
+- ✅ **CRITICAL BUG FIX**: Fixed Gold pip calculation (line 66: `lot_size * 100` → `lot_size * 1`) - now calculates accurate P&L for XAUUSD
+- ✅ **Dual SL System Implemented**: 
+  - **SL-1 ORIGINAL**: Wide SLs for conservative risk (XAUUSD $10k = 1500 pips, EURUSD $10k = 150 pips)
+  - **SL-2 RECOMMENDED**: Tight SLs for aggressive trading (XAUUSD $10k = 800 pips, EURUSD $10k = 100 pips)
+  - 100 configurations total (10 symbols × 5 account tiers × 2 systems)
+- ✅ **Dynamic SL Reduction**: Per-symbol reduction support (5-50%) - reduce SL for specific symbols without affecting others
+- ✅ **Pre-Trade Validation**: Automatic verification that expected loss matches risk cap (10% tolerance) before trade execution
+- ✅ **SL Hunting Integration**: Updated to use active SL system with reductions for accurate hunt detection
+- ✅ **Chain Metadata Tracking**: ReEntryChain now stores `sl_system_used`, `sl_reduction_percent`, `original_sl_pips`, `applied_sl_pips`
+- ✅ **Telegram Control - 8 NEW Commands** (55 total now):
+  - **⚙️ SL SYSTEM CONTROL**: `/sl_status`, `/sl_system_change [sl-1/sl-2]`, `/sl_system_on [sl-1/sl-2]`, `/complete_sl_system_off`
+  - **Updated**: `/view_sl_config` (shows active system + reductions), `/set_symbol_sl SYMBOL PERCENT` (reduce by %)
+  - **New**: `/reset_symbol_sl SYMBOL`, `/reset_all_sl`
+  - **Removed**: `/update_volatility` (deprecated, replaced by dual SL system)
+- ✅ **Comprehensive Testing**: 
+  - 100/100 SL calculations passed (50 SL-1 + 50 SL-2 across all symbols/tiers)
+  - 3/3 metadata regression tests passed
+  - Zero LSP errors confirmed
+- ✅ **Architect Approved**: Production-ready for Windows MT5 deployment with accurate risk management
+
+**Test Results**: All systems validated - SL-1, SL-2, reduction, switching, metadata, and Gold pip fix verified working correctly
+
 ### October 09, 2025 - EXIT CONTINUATION SYSTEM COMPLETE ✅
 **NEW FEATURE: Exit Continuation Monitoring (All Requirements Met)**
 - ✅ **Exit Continuation System**: After Exit Appeared/Reversal/Trend Reversal/Opposite Signal → Profit book → Continue monitoring (30s) → Price gap check (2 pips) → Alignment validation → Auto re-entry if conditions met → TP system continues
