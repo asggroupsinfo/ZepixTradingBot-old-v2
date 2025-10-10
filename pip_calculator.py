@@ -61,9 +61,9 @@ class PipCalculator:
         Gold has unique pip value calculations compared to forex pairs
         """
         
-        # For GOLD: 1 point = $0.01 for 0.01 lot
+        # For GOLD: 1 pip (0.01) = $1 for 1.0 lot
         # Point value scales linearly with lot size
-        point_value = lot_size * 100
+        point_value = lot_size * 1
         
         # Calculate how many points we need to risk the cap amount
         points_needed = risk_cap / point_value
