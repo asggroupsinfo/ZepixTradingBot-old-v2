@@ -1047,10 +1047,13 @@ class TelegramBot:
             min_sl = cfg.get('min_sl_distance', 0)
             pip_size = cfg.get('pip_size', 0)
             
+            pips = round(min_sl / pip_size) if pip_size > 0 else 0
+            
             msg += f"<b>{symbol}</b>\n"
-            msg += f"Volatility: {volatility}\n"
-            msg += f"Min SL: {min_sl} ({int(min_sl/pip_size) if pip_size > 0 else 0} pips)\n"
-            msg += f"Pip Size: {pip_size}\n\n"
+            msg += f"  Volatility: {volatility}\n"
+            msg += f"  Min SL Distance: {min_sl}\n"
+            msg += f"  Min SL (Pips): {pips} pips\n"
+            msg += f"  Pip Size: {pip_size}\n\n"
         
         self.send_message(msg)
 
@@ -1106,9 +1109,10 @@ class TelegramBot:
                 self.send_message(f"❌ Symbol {symbol} not found")
                 return
             
-            sl_defaults = {'LOW': 0.0005, 'MEDIUM': 0.001, 'HIGH': 0.0015}
             if symbol == 'XAUUSD':
-                sl_defaults = {'LOW': 0.05, 'MEDIUM': 0.1, 'HIGH': 0.15}
+                sl_defaults = {'LOW': 0.05, 'MEDIUM': 0.10, 'HIGH': 0.15}
+            else:
+                sl_defaults = {'LOW': 0.0003, 'MEDIUM': 0.0005, 'HIGH': 0.0008}
             
             symbols[symbol]['volatility'] = volatility
             symbols[symbol]['min_sl_distance'] = sl_defaults[volatility]

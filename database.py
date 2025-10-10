@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 
 class TradeDatabase:
     def __init__(self):
-        self.conn = sqlite3.connect('trading_bot.db')
+        self.conn = sqlite3.connect('trading_bot.db', check_same_thread=False)
         self.create_tables()
 
     def create_tables(self):
