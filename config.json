@@ -763,5 +763,6 @@
     },
     "active_sl_system": "sl-1",
     "sl_system_enabled": true,
-    "symbol_sl_reductions": {}
+    "symbol_sl_reductions": {},
+    "account_balance": 10000
 }

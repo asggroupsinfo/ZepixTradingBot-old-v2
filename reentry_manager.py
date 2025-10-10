@@ -28,15 +28,30 @@ class ReEntryManager:
             trade_ids = [sim_id]
             print(f"ℹ️ Simulation mode: Using pseudo trade ID {sim_id}")
         
-        # Calculate SL pips for metadata
-        symbol_config = self.config["symbol_config"][trade.symbol]
-        pip_size = symbol_config["pip_size"]
-        sl_distance_pips = abs(trade.entry - trade.sl) / pip_size
-        
         # Get active SL system and reduction info
         active_system = self.config.get("active_sl_system", "sl-1")
         symbol_reductions = self.config.get("symbol_sl_reductions", {})
         symbol_reduction = symbol_reductions.get(trade.symbol, 0)
+        
+        # Get ORIGINAL unreduced SL pips from dual system config
+        # Determine account tier based on balance
+        balance = self.config.get("account_balance", 10000)
+        if balance < 7500:
+            tier = "5000"
+        elif balance < 17500:
+            tier = "10000"
+        elif balance < 37500:
+            tier = "25000"
+        elif balance < 75000:
+            tier = "50000"
+        else:
+            tier = "100000"
+        
+        # Fetch original SL pips from the active system config
+        original_sl_pips = self.config["sl_systems"][active_system]["symbols"][trade.symbol][tier]["sl_pips"]
+        
+        # Calculate applied SL pips (what was actually used on the trade)
+        applied_sl_pips = original_sl_pips * (1 - symbol_reduction / 100) if symbol_reduction > 0 else original_sl_pips
         
         chain = ReEntryChain(
             chain_id=chain_id,
@@ -52,8 +67,8 @@ class ReEntryManager:
             metadata={
                 "sl_system_used": active_system,
                 "sl_reduction_percent": symbol_reduction,
-                "original_sl_pips": sl_distance_pips,
-                "applied_sl_pips": sl_distance_pips * (1 - symbol_reduction / 100) if symbol_reduction > 0 else sl_distance_pips
+                "original_sl_pips": original_sl_pips,
+                "applied_sl_pips": applied_sl_pips
             }
         )
         
