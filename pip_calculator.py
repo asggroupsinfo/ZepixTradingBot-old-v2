@@ -13,38 +13,27 @@ class PipCalculator:
         
     def calculate_sl_price(self, symbol: str, entry_price: float, 
                           direction: str, lot_size: float, 
-                          account_balance: float) -> Tuple[float, float]:
+                          account_balance: float, sl_adjustment: float = 1.0) -> Tuple[float, float]:
         """
-        Calculate SL price based on risk amount and lot size
+        Calculate SL price using dual SL system (sl-1 or sl-2)
         Symbol parameter uses TradingView naming (XAUUSD, not GOLD)
         Returns: (sl_price, sl_distance_in_price)
+        
+        sl_adjustment: Multiplier for SL (used in re-entry system, default 1.0)
         """
         
-        # Get symbol configuration using TradingView symbol name
+        # Get symbol configuration
         symbol_config = self.config["symbol_config"][symbol]
-        volatility = symbol_config["volatility"]
+        pip_size = symbol_config["pip_size"]
         
-        # Get account tier and risk cap based on balance and volatility
-        account_tier = self._get_account_tier(account_balance)
-        risk_cap = self.config["risk_by_account_tier"][account_tier][volatility]["risk_dollars"]
+        # Get SL in pips from dual SL system
+        sl_pips = self._get_sl_from_dual_system(symbol, account_balance)
         
-        # Special handling for gold - checks the is_gold flag in config
-        if symbol_config.get("is_gold", False):
-            return self._calculate_gold_sl(entry_price, direction, lot_size, risk_cap)
-        
-        # Calculate pip value for the lot size
-        pip_value = self._get_pip_value(symbol, lot_size)
-        
-        # Calculate SL distance in pips
-        sl_pips = risk_cap / pip_value
+        # Apply SL adjustment (for re-entry progressive reduction)
+        sl_pips = sl_pips * sl_adjustment
         
         # Convert pips to price distance
-        pip_size = symbol_config["pip_size"]
         sl_distance = sl_pips * pip_size
-        
-        # Ensure minimum SL distance for safety
-        min_distance = symbol_config["min_sl_distance"]
-        sl_distance = max(sl_distance, min_distance)
         
         # Calculate actual SL price based on direction
         if direction == "buy":
@@ -54,34 +43,64 @@ class PipCalculator:
             
         return sl_price, sl_distance
     
-    def _calculate_gold_sl(self, entry_price: float, direction: str, 
-                          lot_size: float, risk_cap: float) -> Tuple[float, float]:
+    def _get_sl_from_dual_system(self, symbol: str, account_balance: float) -> float:
         """
-        Special calculation for GOLD/XAUUSD
-        Gold has unique pip value calculations compared to forex pairs
+        Get SL in pips from active dual SL system (sl-1 or sl-2)
+        Applies symbol-specific reductions if configured
         """
         
-        # For GOLD: 1 pip (0.01) = $1 for 1.0 lot
-        # Point value scales linearly with lot size
-        point_value = lot_size * 1
+        # Check if SL system is enabled
+        if not self.config.get("sl_system_enabled", True):
+            # Fallback to old risk-cap based calculation
+            return self._fallback_sl_calculation(symbol, account_balance)
         
-        # Calculate how many points we need to risk the cap amount
-        points_needed = risk_cap / point_value
+        # Get active system (sl-1 or sl-2)
+        active_system = self.config.get("active_sl_system", "sl-1")
         
-        # Convert points to price distance (GOLD moves in 0.01 increments)
-        sl_distance = points_needed
+        # Get account tier
+        account_tier = self._get_account_tier(account_balance)
         
-        # Ensure minimum distance of 0.50 for gold volatility
-        sl_distance = max(sl_distance, 0.50)
+        # Get SL pips from active system table
+        try:
+            sl_data = self.config["sl_systems"][active_system]["symbols"][symbol][account_tier]
+            sl_pips = sl_data["sl_pips"]
+        except KeyError:
+            # Fallback if symbol/tier not found
+            print(f"⚠️ SL not found for {symbol} @ {account_tier} in {active_system}, using fallback")
+            return self._fallback_sl_calculation(symbol, account_balance)
         
-        # Calculate SL price based on trade direction
-        if direction == "buy":
-            sl_price = entry_price - sl_distance
-        else:
-            sl_price = entry_price + sl_distance
-            
-        return sl_price, sl_distance
+        # Apply symbol-specific reduction if configured
+        symbol_reductions = self.config.get("symbol_sl_reductions", {})
+        if symbol in symbol_reductions:
+            reduction_percent = symbol_reductions[symbol]
+            sl_pips = sl_pips * (1 - reduction_percent / 100)
+            print(f"📉 {symbol} SL reduced by {reduction_percent}%: {sl_pips:.1f} pips")
+        
+        return sl_pips
     
+    def _fallback_sl_calculation(self, symbol: str, account_balance: float) -> float:
+        """
+        Fallback SL calculation when dual system is disabled
+        Uses old risk-cap based logic
+        """
+        symbol_config = self.config["symbol_config"][symbol]
+        volatility = symbol_config["volatility"]
+        account_tier = self._get_account_tier(account_balance)
+        
+        # Get risk cap
+        risk_cap = self.config["risk_by_account_tier"][account_tier][volatility]["risk_dollars"]
+        
+        # Get lot size from fixed_lot_sizes
+        lot_size = self.config["fixed_lot_sizes"].get(account_tier, 0.05)
+        
+        # Calculate pip value
+        pip_value_std = symbol_config["pip_value_per_std_lot"]
+        pip_value = pip_value_std * lot_size
+        
+        # Calculate SL in pips
+        sl_pips = risk_cap / pip_value
+        
+        return sl_pips
     def _get_pip_value(self, symbol: str, lot_size: float) -> float:
         """
         Get pip value for a specific lot size
@@ -147,3 +166,48 @@ class PipCalculator:
             return "50000"
         else:
             return "100000"
+    
+    def validate_trade_risk(self, symbol: str, lot_size: float, sl_pips: float, 
+                           account_balance: float) -> Dict:
+        """
+        Validate that expected loss matches risk cap from dual SL system
+        Returns: {"valid": bool, "expected_loss": float, "risk_cap": float, "message": str}
+        """
+        # Get pip value
+        symbol_config = self.config["symbol_config"][symbol]
+        pip_value_std = symbol_config["pip_value_per_std_lot"]
+        pip_value = pip_value_std * lot_size
+        
+        # Calculate expected loss
+        expected_loss = sl_pips * pip_value
+        
+        # Get risk cap from active SL system
+        account_tier = self._get_account_tier(account_balance)
+        active_system = self.config.get("active_sl_system", "sl-1")
+        
+        try:
+            sl_data = self.config["sl_systems"][active_system]["symbols"][symbol][account_tier]
+            risk_cap = sl_data["risk_dollars"]
+        except KeyError:
+            # Fallback to old risk tier system
+            volatility = symbol_config["volatility"]
+            risk_cap = self.config["risk_by_account_tier"][account_tier][volatility]["risk_dollars"]
+        
+        # Validate with 10% tolerance
+        tolerance = 0.1
+        lower_bound = risk_cap * (1 - tolerance)
+        upper_bound = risk_cap * (1 + tolerance)
+        
+        is_valid = lower_bound <= expected_loss <= upper_bound
+        
+        if is_valid:
+            message = f"✅ Risk validated: ${expected_loss:.2f} within ${risk_cap:.2f} cap"
+        else:
+            message = f"⚠️ Risk mismatch: ${expected_loss:.2f} vs ${risk_cap:.2f} cap"
+        
+        return {
+            "valid": is_valid,
+            "expected_loss": expected_loss,
+            "risk_cap": risk_cap,
+            "message": message
+        }

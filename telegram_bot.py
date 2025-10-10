@@ -65,8 +65,13 @@ class TelegramBot:
             "/reset_reentry_config": self.handle_reset_reentry_config,
             "/view_sl_config": self.handle_view_sl_config,
             "/set_symbol_sl": self.handle_set_symbol_sl,
-            "/update_volatility": self.handle_update_volatility,
             "/view_risk_caps": self.handle_view_risk_caps,
+            "/sl_status": self.handle_sl_status,
+            "/sl_system_change": self.handle_sl_system_change,
+            "/sl_system_on": self.handle_sl_system_on,
+            "/complete_sl_system_off": self.handle_complete_sl_system_off,
+            "/reset_symbol_sl": self.handle_reset_symbol_sl,
+            "/reset_all_sl": self.handle_reset_all_sl,
             "/set_daily_cap": self.handle_set_daily_cap,
             "/set_lifetime_cap": self.handle_set_lifetime_cap,
             "/set_risk_tier": self.handle_set_risk_tier
@@ -156,12 +161,19 @@ class TelegramBot:
             "/set_daily_cap [amount] - Set daily limit\n"
             "/set_lifetime_cap [amount] - Set lifetime limit\n"
             "/set_risk_tier BALANCE DAILY LIFETIME - Complete tier\n"
-            "/clear_loss_data - Reset lifetime loss\n\n"
-            "/view_sl_config - Symbol SL settings\n"
-            "/set_symbol_sl SYMBOL VOL SL - Update symbol SL\n"
-            "/update_volatility SYMBOL LEVEL - Quick volatility\n\n"
+            "/clear_loss_data - Reset lifetime loss\n"
             "/lot_size_status - Lot settings\n"
-            "/set_lot_size TIER LOT - Override lot size"
+            "/set_lot_size TIER LOT - Override lot size\n\n"
+            
+            "<b>⚙️ SL SYSTEM CONTROL</b>\n"
+            "/sl_status - Active SL system &amp; reductions\n"
+            "/sl_system_change [sl-1/sl-2] - Switch SL system\n"
+            "/sl_system_on [sl-1/sl-2] - Enable SL system\n"
+            "/complete_sl_system_off - Disable all SL\n"
+            "/view_sl_config - View SL configuration\n"
+            "/set_symbol_sl SYMBOL PERCENT - Reduce SL %\n"
+            "/reset_symbol_sl SYMBOL - Reset symbol SL\n"
+            "/reset_all_sl - Reset all SL reductions"
         )
         self.send_message(welcome_msg)
 
@@ -1037,91 +1049,256 @@ class TelegramBot:
                          "SL Reduction: 50%")
 
     def handle_view_sl_config(self, message):
-        """Display all symbol SL configurations"""
-        symbols = self.config.get('symbol_config', {})
+        """Display all symbol SL configurations with dual SL system info"""
+        active_system = self.config.get('active_sl_system', 'sl-1')
+        sl_enabled = self.config.get('sl_system_enabled', True)
+        sl_systems = self.config.get('sl_systems', {})
+        sl_reductions = self.config.get('symbol_sl_reductions', {})
+        symbol_config = self.config.get('symbol_config', {})
+        current_tier = self.config.get('default_risk_tier', '5000')
         
-        msg = "📊 <b>Symbol SL Configuration</b>\n\n"
+        system_info = sl_systems.get(active_system, {})
+        system_name = system_info.get('name', active_system.upper())
         
-        for symbol, cfg in symbols.items():
-            volatility = cfg.get('volatility', 'MEDIUM')
-            min_sl = cfg.get('min_sl_distance', 0)
-            pip_size = cfg.get('pip_size', 0)
+        msg = f"📊 <b>SL Configuration</b>\n\n"
+        msg += f"<b>Active System:</b> {system_name}\n"
+        msg += f"<b>Status:</b> {'✅ ENABLED' if sl_enabled else '❌ DISABLED'}\n"
+        msg += f"<b>Account Tier:</b> ${current_tier}\n\n"
+        
+        all_symbols = list(symbol_config.keys())
+        
+        for symbol in all_symbols:
+            volatility = symbol_config.get(symbol, {}).get('volatility', 'MEDIUM')
             
-            pips = round(min_sl / pip_size) if pip_size > 0 else 0
+            system_symbols = system_info.get('symbols', {})
+            if symbol in system_symbols and current_tier in system_symbols[symbol]:
+                original_pips = system_symbols[symbol][current_tier]['sl_pips']
+            else:
+                original_pips = 0
             
-            msg += f"<b>{symbol}</b>\n"
-            msg += f"  Volatility: {volatility}\n"
-            msg += f"  Min SL Distance: {min_sl}\n"
-            msg += f"  Min SL (Pips): {pips} pips\n"
-            msg += f"  Pip Size: {pip_size}\n\n"
+            reduction_percent = sl_reductions.get(symbol, 0)
+            
+            if reduction_percent > 0:
+                current_pips = int(original_pips * (1 - reduction_percent / 100))
+                msg += f"<b>{symbol} ({volatility}):</b>\n"
+                msg += f"  Original: {original_pips} pips | Reduced: {reduction_percent}% | Current: {current_pips} pips\n\n"
+            else:
+                msg += f"<b>{symbol} ({volatility}):</b>\n"
+                msg += f"  SL: {original_pips} pips (No reduction)\n\n"
         
         self.send_message(msg)
 
     def handle_set_symbol_sl(self, message):
-        """Set symbol SL configuration - /set_symbol_sl SYMBOL VOLATILITY SL"""
-        try:
-            parts = message['text'].split()
-            if len(parts) != 4:
-                self.send_message("❌ Usage: /set_symbol_sl SYMBOL VOLATILITY SL\nExample: /set_symbol_sl XAUUSD HIGH 0.15")
-                return
-            
-            symbol = parts[1].upper()
-            volatility = parts[2].upper()
-            sl_distance = float(parts[3])
-            
-            if volatility not in ['LOW', 'MEDIUM', 'HIGH']:
-                self.send_message("❌ Volatility must be LOW, MEDIUM, or HIGH")
-                return
-            
-            symbols = self.config.get('symbol_config', {})
-            if symbol not in symbols:
-                self.send_message(f"❌ Symbol {symbol} not found in config")
-                return
-            
-            symbols[symbol]['volatility'] = volatility
-            symbols[symbol]['min_sl_distance'] = sl_distance
-            self.config.update('symbol_config', symbols)
-            
-            self.send_message(f"✅ {symbol} updated:\nVolatility: {volatility}\nMin SL: {sl_distance}")
-        
-        except ValueError:
-            self.send_message("❌ Invalid SL value. Use decimal format (e.g., 0.15)")
-        except Exception as e:
-            self.send_message(f"❌ Error: {str(e)}")
-
-    def handle_update_volatility(self, message):
-        """Quick volatility update - /update_volatility SYMBOL LEVEL"""
+        """Reduce symbol SL by percentage - /set_symbol_sl SYMBOL PERCENT"""
         try:
             parts = message['text'].split()
             if len(parts) != 3:
-                self.send_message("❌ Usage: /update_volatility SYMBOL LEVEL\nExample: /update_volatility XAUUSD HIGH")
+                self.send_message(
+                    "❌ <b>Usage:</b> /set_symbol_sl SYMBOL PERCENT\n\n"
+                    "<b>Example:</b> /set_symbol_sl XAUUSD 20\n"
+                    "This reduces Gold SL by 20%\n\n"
+                    "<b>Percent Range:</b> 5-50%"
+                )
                 return
             
             symbol = parts[1].upper()
-            volatility = parts[2].upper()
+            percent = float(parts[2])
             
-            if volatility not in ['LOW', 'MEDIUM', 'HIGH']:
-                self.send_message("❌ Volatility must be LOW, MEDIUM, or HIGH")
+            if not (5 <= percent <= 50):
+                self.send_message("❌ Percentage must be between 5-50%")
                 return
             
-            symbols = self.config.get('symbol_config', {})
-            if symbol not in symbols:
-                self.send_message(f"❌ Symbol {symbol} not found")
+            symbol_config = self.config.get('symbol_config', {})
+            if symbol not in symbol_config:
+                self.send_message(f"❌ Symbol {symbol} not found in config")
                 return
             
-            if symbol == 'XAUUSD':
-                sl_defaults = {'LOW': 0.05, 'MEDIUM': 0.10, 'HIGH': 0.15}
-            else:
-                sl_defaults = {'LOW': 0.0003, 'MEDIUM': 0.0005, 'HIGH': 0.0008}
+            active_system = self.config.get('active_sl_system', 'sl-1')
+            sl_systems = self.config.get('sl_systems', {})
+            current_tier = self.config.get('default_risk_tier', '5000')
             
-            symbols[symbol]['volatility'] = volatility
-            symbols[symbol]['min_sl_distance'] = sl_defaults[volatility]
-            self.config.update('symbol_config', symbols)
+            system_info = sl_systems.get(active_system, {})
+            system_symbols = system_info.get('symbols', {})
             
-            self.send_message(f"✅ {symbol} volatility updated to {volatility}\nAuto SL: {sl_defaults[volatility]}")
+            if symbol not in system_symbols or current_tier not in system_symbols[symbol]:
+                self.send_message(f"❌ {symbol} not configured in {active_system}")
+                return
+            
+            original_pips = system_symbols[symbol][current_tier]['sl_pips']
+            current_pips = int(original_pips * (1 - percent / 100))
+            
+            sl_reductions = self.config.get('symbol_sl_reductions', {})
+            sl_reductions[symbol] = percent
+            self.config.update('symbol_sl_reductions', sl_reductions)
+            
+            self.send_message(
+                f"✅ <b>{symbol} SL Reduced</b>\n\n"
+                f"Original: {original_pips} pips\n"
+                f"Reduction: {percent}%\n"
+                f"Current: {current_pips} pips"
+            )
+        
+        except ValueError:
+            self.send_message("❌ Invalid percentage. Use numbers only (5-50)")
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+
+    def handle_sl_status(self, message):
+        """Show current active SL system, enabled status, all symbol reductions"""
+        active_system = self.config.get('active_sl_system', 'sl-1')
+        sl_enabled = self.config.get('sl_system_enabled', True)
+        sl_systems = self.config.get('sl_systems', {})
+        sl_reductions = self.config.get('symbol_sl_reductions', {})
+        
+        system_info = sl_systems.get(active_system, {})
+        system_name = system_info.get('name', active_system.upper())
+        system_desc = system_info.get('description', '')
+        
+        msg = "⚙️ <b>SL SYSTEM STATUS</b>\n\n"
+        msg += f"<b>Active System:</b> {system_name}\n"
+        msg += f"<b>Description:</b> {system_desc}\n"
+        msg += f"<b>Status:</b> {'✅ ENABLED' if sl_enabled else '❌ DISABLED'}\n\n"
+        
+        if sl_reductions:
+            msg += "<b>Symbol SL Reductions:</b>\n"
+            for symbol, percent in sl_reductions.items():
+                msg += f"  {symbol}: {percent}% reduction\n"
+        else:
+            msg += "<b>Symbol SL Reductions:</b> None\n"
+        
+        self.send_message(msg)
+    
+    def handle_sl_system_change(self, message):
+        """Switch between SL systems - /sl_system_change [sl-1/sl-2]"""
+        try:
+            parts = message['text'].split()
+            if len(parts) != 2:
+                self.send_message(
+                    "❌ <b>Usage:</b> /sl_system_change [sl-1/sl-2]\n\n"
+                    "<b>Example:</b> /sl_system_change sl-2\n"
+                    "Switches to SL-2 system"
+                )
+                return
+            
+            new_system = parts[1].lower()
+            
+            if new_system not in ['sl-1', 'sl-2']:
+                self.send_message("❌ System must be sl-1 or sl-2")
+                return
+            
+            sl_systems = self.config.get('sl_systems', {})
+            if new_system not in sl_systems:
+                self.send_message(f"❌ System {new_system} not found in config")
+                return
+            
+            self.config.update('active_sl_system', new_system)
+            
+            system_info = sl_systems[new_system]
+            system_name = system_info.get('name', new_system.upper())
+            
+            self.send_message(
+                f"✅ <b>SL System Changed</b>\n\n"
+                f"Now using: {system_name}\n"
+                f"Description: {system_info.get('description', '')}"
+            )
         
         except Exception as e:
             self.send_message(f"❌ Error: {str(e)}")
+    
+    def handle_sl_system_on(self, message):
+        """Enable specific SL system - /sl_system_on [sl-1/sl-2]"""
+        try:
+            parts = message['text'].split()
+            if len(parts) != 2:
+                self.send_message(
+                    "❌ <b>Usage:</b> /sl_system_on [sl-1/sl-2]\n\n"
+                    "<b>Example:</b> /sl_system_on sl-1\n"
+                    "Enables SL-1 system"
+                )
+                return
+            
+            system = parts[1].lower()
+            
+            if system not in ['sl-1', 'sl-2']:
+                self.send_message("❌ System must be sl-1 or sl-2")
+                return
+            
+            sl_systems = self.config.get('sl_systems', {})
+            if system not in sl_systems:
+                self.send_message(f"❌ System {system} not found in config")
+                return
+            
+            self.config.update('active_sl_system', system)
+            self.config.update('sl_system_enabled', True)
+            
+            system_info = sl_systems[system]
+            system_name = system_info.get('name', system.upper())
+            
+            self.send_message(
+                f"✅ <b>SL System Enabled</b>\n\n"
+                f"Active: {system_name}\n"
+                f"Status: ✅ ENABLED"
+            )
+        
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+    
+    def handle_complete_sl_system_off(self, message):
+        """Disable all SL systems"""
+        self.config.update('sl_system_enabled', False)
+        
+        self.send_message(
+            "⚠️ <b>ALL SL SYSTEMS DISABLED</b>\n\n"
+            "All SL systems are now turned off.\n"
+            "Use /sl_system_on [sl-1/sl-2] to enable."
+        )
+    
+    def handle_reset_symbol_sl(self, message):
+        """Reset one symbol to original SL - /reset_symbol_sl SYMBOL"""
+        try:
+            parts = message['text'].split()
+            if len(parts) != 2:
+                self.send_message(
+                    "❌ <b>Usage:</b> /reset_symbol_sl SYMBOL\n\n"
+                    "<b>Example:</b> /reset_symbol_sl XAUUSD\n"
+                    "Resets Gold to original SL"
+                )
+                return
+            
+            symbol = parts[1].upper()
+            
+            sl_reductions = self.config.get('symbol_sl_reductions', {})
+            
+            if symbol not in sl_reductions:
+                self.send_message(f"❌ {symbol} has no SL reduction to reset")
+                return
+            
+            del sl_reductions[symbol]
+            self.config.update('symbol_sl_reductions', sl_reductions)
+            
+            self.send_message(
+                f"✅ <b>{symbol} SL Reset</b>\n\n"
+                f"{symbol} has been reset to original SL values"
+            )
+        
+        except Exception as e:
+            self.send_message(f"❌ Error: {str(e)}")
+    
+    def handle_reset_all_sl(self, message):
+        """Reset all symbols to original SL - clear all reductions"""
+        sl_reductions = self.config.get('symbol_sl_reductions', {})
+        
+        if not sl_reductions:
+            self.send_message("❌ No SL reductions to reset")
+            return
+        
+        count = len(sl_reductions)
+        self.config.update('symbol_sl_reductions', {})
+        
+        self.send_message(
+            f"✅ <b>All SL Reductions Reset</b>\n\n"
+            f"Reset {count} symbol(s) to original SL values"
+        )
 
     def handle_view_risk_caps(self, message):
         """Display risk caps and current loss status"""

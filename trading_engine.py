@@ -233,6 +233,22 @@ class TradingEngine:
             print(f"   TP: {tp_price:.5f} ({tp_pips:.1f} pips)")
             print(f"   Risk: ${account_tier} tier | Volatility: {symbol_config['volatility']}")
             
+            # Validate trade risk before execution
+            validation = self.pip_calculator.validate_trade_risk(
+                alert.symbol, lot_size, sl_pips, account_balance
+            )
+            print(f"   {validation['message']}")
+            
+            if not validation["valid"]:
+                warning = (
+                    f"⚠️ RISK VALIDATION WARNING\n"
+                    f"Symbol: {alert.symbol}\n"
+                    f"Expected Loss: ${validation['expected_loss']:.2f}\n"
+                    f"Risk Cap: ${validation['risk_cap']:.2f}\n"
+                    f"Trade will proceed but check SL system config!"
+                )
+                self.telegram_bot.send_message(warning)
+            
             # Create trade object
             trade = Trade(
                 symbol=alert.symbol,

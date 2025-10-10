@@ -83,3 +83,4 @@ class ReEntryChain(BaseModel):
     created_at: str
     last_update: str
     trend_at_creation: Dict[str, str] = {}
+    metadata: Dict[str, Any] = {}  # Stores SL system info, reductions, etc
