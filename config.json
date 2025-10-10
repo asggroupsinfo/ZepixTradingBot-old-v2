@@ -161,5 +161,162 @@
         "LOGIC2",
         "LOGIC3"
     ],
-    "daily_reset_time": "03:35"
+    "daily_reset_time": "03:35",
+    "sl_systems": {
+        "sl-1": {
+            "name": "SL-1 ORIGINAL",
+            "description": "User approved volatility-based SL system (Wide/Conservative)",
+            "symbols": {
+                "EURUSD": {
+                    "5000": {"sl_pips": 150, "risk_dollars": 75, "risk_percent": 1.5},
+                    "10000": {"sl_pips": 150, "risk_dollars": 150, "risk_percent": 1.5},
+                    "25000": {"sl_pips": 50, "risk_dollars": 500, "risk_percent": 2.0},
+                    "50000": {"sl_pips": 40, "risk_dollars": 1000, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 40, "risk_dollars": 2000, "risk_percent": 2.0}
+                },
+                "GBPUSD": {
+                    "5000": {"sl_pips": 150, "risk_dollars": 75, "risk_percent": 1.5},
+                    "10000": {"sl_pips": 150, "risk_dollars": 150, "risk_percent": 1.5},
+                    "25000": {"sl_pips": 50, "risk_dollars": 500, "risk_percent": 2.0},
+                    "50000": {"sl_pips": 40, "risk_dollars": 1000, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 50, "risk_dollars": 2500, "risk_percent": 2.5}
+                },
+                "AUDUSD": {
+                    "5000": {"sl_pips": 150, "risk_dollars": 75, "risk_percent": 1.5},
+                    "10000": {"sl_pips": 150, "risk_dollars": 150, "risk_percent": 1.5},
+                    "25000": {"sl_pips": 50, "risk_dollars": 500, "risk_percent": 2.0},
+                    "50000": {"sl_pips": 40, "risk_dollars": 1000, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 50, "risk_dollars": 2500, "risk_percent": 2.5}
+                },
+                "USDCAD": {
+                    "5000": {"sl_pips": 150, "risk_dollars": 75, "risk_percent": 1.5},
+                    "10000": {"sl_pips": 150, "risk_dollars": 150, "risk_percent": 1.5},
+                    "25000": {"sl_pips": 50, "risk_dollars": 500, "risk_percent": 2.0},
+                    "50000": {"sl_pips": 40, "risk_dollars": 1000, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 50, "risk_dollars": 2500, "risk_percent": 2.5}
+                },
+                "NZDUSD": {
+                    "5000": {"sl_pips": 150, "risk_dollars": 75, "risk_percent": 1.5},
+                    "10000": {"sl_pips": 150, "risk_dollars": 150, "risk_percent": 1.5},
+                    "25000": {"sl_pips": 50, "risk_dollars": 500, "risk_percent": 2.0},
+                    "50000": {"sl_pips": 40, "risk_dollars": 1000, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 50, "risk_dollars": 2500, "risk_percent": 2.5}
+                },
+                "USDJPY": {
+                    "5000": {"sl_pips": 166, "risk_dollars": 75, "risk_percent": 1.5},
+                    "10000": {"sl_pips": 166, "risk_dollars": 150, "risk_percent": 1.5},
+                    "25000": {"sl_pips": 55, "risk_dollars": 500, "risk_percent": 2.0},
+                    "50000": {"sl_pips": 44, "risk_dollars": 1000, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 55, "risk_dollars": 2500, "risk_percent": 2.5}
+                },
+                "EURJPY": {
+                    "5000": {"sl_pips": 111, "risk_dollars": 50, "risk_percent": 1.0},
+                    "10000": {"sl_pips": 111, "risk_dollars": 100, "risk_percent": 1.0},
+                    "25000": {"sl_pips": 41, "risk_dollars": 375, "risk_percent": 1.5},
+                    "50000": {"sl_pips": 44, "risk_dollars": 1000, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 44, "risk_dollars": 2000, "risk_percent": 2.0}
+                },
+                "GBPJPY": {
+                    "5000": {"sl_pips": 111, "risk_dollars": 50, "risk_percent": 1.0},
+                    "10000": {"sl_pips": 111, "risk_dollars": 100, "risk_percent": 1.0},
+                    "25000": {"sl_pips": 41, "risk_dollars": 375, "risk_percent": 1.5},
+                    "50000": {"sl_pips": 44, "risk_dollars": 1000, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 44, "risk_dollars": 2000, "risk_percent": 2.0}
+                },
+                "AUDJPY": {
+                    "5000": {"sl_pips": 111, "risk_dollars": 50, "risk_percent": 1.0},
+                    "10000": {"sl_pips": 111, "risk_dollars": 100, "risk_percent": 1.0},
+                    "25000": {"sl_pips": 41, "risk_dollars": 375, "risk_percent": 1.5},
+                    "50000": {"sl_pips": 44, "risk_dollars": 1000, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 44, "risk_dollars": 2000, "risk_percent": 2.0}
+                },
+                "XAUUSD": {
+                    "5000": {"sl_pips": 1000, "risk_dollars": 50, "risk_percent": 1.0},
+                    "10000": {"sl_pips": 1500, "risk_dollars": 150, "risk_percent": 1.5},
+                    "25000": {"sl_pips": 500, "risk_dollars": 500, "risk_percent": 2.0},
+                    "50000": {"sl_pips": 500, "risk_dollars": 1250, "risk_percent": 2.5},
+                    "100000": {"sl_pips": 600, "risk_dollars": 3000, "risk_percent": 3.0}
+                }
+            }
+        },
+        "sl-2": {
+            "name": "SL-2 RECOMMENDED",
+            "description": "Realistic tighter SL system (Tight/Aggressive)",
+            "symbols": {
+                "EURUSD": {
+                    "5000": {"sl_pips": 100, "risk_dollars": 50, "risk_percent": 1.5},
+                    "10000": {"sl_pips": 100, "risk_dollars": 100, "risk_percent": 1.5},
+                    "25000": {"sl_pips": 35, "risk_dollars": 350, "risk_percent": 2.0},
+                    "50000": {"sl_pips": 30, "risk_dollars": 750, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 30, "risk_dollars": 1500, "risk_percent": 2.0}
+                },
+                "GBPUSD": {
+                    "5000": {"sl_pips": 120, "risk_dollars": 60, "risk_percent": 1.5},
+                    "10000": {"sl_pips": 120, "risk_dollars": 120, "risk_percent": 1.5},
+                    "25000": {"sl_pips": 40, "risk_dollars": 400, "risk_percent": 2.0},
+                    "50000": {"sl_pips": 35, "risk_dollars": 875, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 40, "risk_dollars": 2000, "risk_percent": 2.5}
+                },
+                "AUDUSD": {
+                    "5000": {"sl_pips": 120, "risk_dollars": 60, "risk_percent": 1.5},
+                    "10000": {"sl_pips": 120, "risk_dollars": 120, "risk_percent": 1.5},
+                    "25000": {"sl_pips": 40, "risk_dollars": 400, "risk_percent": 2.0},
+                    "50000": {"sl_pips": 35, "risk_dollars": 875, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 40, "risk_dollars": 2000, "risk_percent": 2.5}
+                },
+                "USDCAD": {
+                    "5000": {"sl_pips": 120, "risk_dollars": 60, "risk_percent": 1.5},
+                    "10000": {"sl_pips": 120, "risk_dollars": 120, "risk_percent": 1.5},
+                    "25000": {"sl_pips": 40, "risk_dollars": 400, "risk_percent": 2.0},
+                    "50000": {"sl_pips": 35, "risk_dollars": 875, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 40, "risk_dollars": 2000, "risk_percent": 2.5}
+                },
+                "NZDUSD": {
+                    "5000": {"sl_pips": 120, "risk_dollars": 60, "risk_percent": 1.5},
+                    "10000": {"sl_pips": 120, "risk_dollars": 120, "risk_percent": 1.5},
+                    "25000": {"sl_pips": 40, "risk_dollars": 400, "risk_percent": 2.0},
+                    "50000": {"sl_pips": 35, "risk_dollars": 875, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 40, "risk_dollars": 2000, "risk_percent": 2.5}
+                },
+                "USDJPY": {
+                    "5000": {"sl_pips": 130, "risk_dollars": 58, "risk_percent": 1.5},
+                    "10000": {"sl_pips": 130, "risk_dollars": 117, "risk_percent": 1.5},
+                    "25000": {"sl_pips": 45, "risk_dollars": 405, "risk_percent": 2.0},
+                    "50000": {"sl_pips": 38, "risk_dollars": 855, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 45, "risk_dollars": 2025, "risk_percent": 2.5}
+                },
+                "EURJPY": {
+                    "5000": {"sl_pips": 80, "risk_dollars": 38, "risk_percent": 1.0},
+                    "10000": {"sl_pips": 80, "risk_dollars": 76, "risk_percent": 1.0},
+                    "25000": {"sl_pips": 30, "risk_dollars": 285, "risk_percent": 1.5},
+                    "50000": {"sl_pips": 35, "risk_dollars": 831, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 35, "risk_dollars": 1662, "risk_percent": 2.0}
+                },
+                "GBPJPY": {
+                    "5000": {"sl_pips": 80, "risk_dollars": 36, "risk_percent": 1.0},
+                    "10000": {"sl_pips": 80, "risk_dollars": 72, "risk_percent": 1.0},
+                    "25000": {"sl_pips": 30, "risk_dollars": 270, "risk_percent": 1.5},
+                    "50000": {"sl_pips": 35, "risk_dollars": 788, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 35, "risk_dollars": 1575, "risk_percent": 2.0}
+                },
+                "AUDJPY": {
+                    "5000": {"sl_pips": 80, "risk_dollars": 37, "risk_percent": 1.0},
+                    "10000": {"sl_pips": 80, "risk_dollars": 74, "risk_percent": 1.0},
+                    "25000": {"sl_pips": 30, "risk_dollars": 276, "risk_percent": 1.5},
+                    "50000": {"sl_pips": 35, "risk_dollars": 805, "risk_percent": 2.0},
+                    "100000": {"sl_pips": 35, "risk_dollars": 1610, "risk_percent": 2.0}
+                },
+                "XAUUSD": {
+                    "5000": {"sl_pips": 500, "risk_dollars": 25, "risk_percent": 1.0},
+                    "10000": {"sl_pips": 800, "risk_dollars": 80, "risk_percent": 1.5},
+                    "25000": {"sl_pips": 300, "risk_dollars": 300, "risk_percent": 2.0},
+                    "50000": {"sl_pips": 300, "risk_dollars": 750, "risk_percent": 2.5},
+                    "100000": {"sl_pips": 200, "risk_dollars": 1000, "risk_percent": 3.0}
+                }
+            }
+        }
+    },
+    "active_sl_system": "sl-1",
+    "sl_system_enabled": true,
+    "symbol_sl_reductions": {}
 }
